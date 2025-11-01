@@ -42,7 +42,10 @@ async function loadQuestion() {
   const q = await callGenerate(rows, cols, ensure, seed);
   currentPayload = q;
   document.getElementById("question").textContent = q.question_text;
-  document.getElementById("solution").textContent = q.solution.explanation;
+  // do not populate the official solution yet - only after the user submits an answer
+  document.getElementById("solution").textContent = "(Trimite un răspuns ca să vezi soluția oficială)";
+  // ensure details is closed
+  try { document.querySelector('details').open = false; } catch(e) {}
   document.getElementById("result").innerHTML = "";
   document.getElementById("answer").value = "";
 }
@@ -52,6 +55,12 @@ async function gradeAnswer() {
   const answer = document.getElementById("answer").value.trim();
   const res = await callGrade(currentPayload, answer);
   document.getElementById("result").innerHTML = `<strong>Scor: ${res.score}%</strong><br>${res.feedback}`;
+  // reveal official solution (returned by grade endpoint)
+  if (res.solution) {
+    document.getElementById("solution").textContent = res.solution.explanation;
+    // open the <details> so the solution is visible
+    try { document.querySelector('details').open = true; } catch(e) {}
+  }
 }
 
 document.getElementById("genBtn").addEventListener("click", loadQuestion);

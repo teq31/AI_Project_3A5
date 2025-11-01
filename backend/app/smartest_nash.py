@@ -207,9 +207,21 @@ def build_question_payload(rows=2, cols=2, ensure="unique", seed=None) -> Dict[s
     expl = build_explanation(A,B,p["row_labels"],p["col_labels"])
     p_out = dict(p)
     p_out["id"] = f"NASH-{random.randint(100000,999999)}"
+    # include only the question text in the payload returned to clients
     p_out["question_text"] = qtext
-    p_out["solution"] = {
-        "equilibria": [[i+1,j+1] for (i,j) in eq],
+    return p_out
+
+
+def get_solution_from_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the solution (equilibria + explanation) for a given question payload.
+
+    This allows the backend to withhold the solution from the initial generation
+    response and only reveal it later (for example after the user submits an answer).
+    """
+    A = np.array(payload["A"]); B = np.array(payload["B"])
+    eq = find_pure_nash(A, B)
+    expl = build_explanation(A, B, payload["row_labels"], payload["col_labels"])
+    return {
+        "equilibria": [[i+1, j+1] for (i, j) in eq],
         "explanation": expl
     }
-    return p_out

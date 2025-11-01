@@ -36,4 +36,11 @@ def grade(ap: AnswerPayload):
     """
     Body: { "payload": <json intrebare>, "answer": "R2 C1" | "2 1" | "none" }
     """
-    return sm.grade_answer(ap.answer, ap.payload)
+    # grade the answer
+    grading = sm.grade_answer(ap.answer, ap.payload)
+    # attach official solution to the grading response so the frontend can
+    # reveal it only after the user submitted an answer
+    solution = sm.get_solution_from_payload(ap.payload)
+    out = dict(grading)
+    out["solution"] = solution
+    return out
