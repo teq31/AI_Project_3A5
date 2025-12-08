@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import app.smartest_nash as sm
+import app.smartest_minmax as mm
 
 app = FastAPI(title="SmarTest API", version="0.1.0")
 
@@ -37,3 +38,27 @@ def grade(ap: AnswerPayload):
     Body: { "payload": <json intrebare>, "answer": "R2 C1" | "2 1" | "none" }
     """
     return sm.grade_answer(ap.answer, ap.payload)
+
+@app.get("/minmax/generate")
+def generate_minmax(depth: int = 3, branching_factor: int = 2, 
+                   value_min: int = -10, value_max: int = 10, 
+                   seed: int | None = None):
+    """
+    depth: adâncimea arborelui
+    branching_factor: factorul de ramificare (numărul de copii per nod)
+    value_min, value_max: intervalul valorilor pentru frunze
+    seed: întrebări reproducibile
+    """
+    return mm.build_question_payload(
+        depth=depth,
+        branching_factor=branching_factor,
+        value_range=(value_min, value_max),
+        seed=seed
+    )
+
+@app.post("/minmax/grade")
+def grade_minmax(ap: AnswerPayload):
+    """
+    Body: { "payload": <json intrebare>, "answer": "5 4" | "valoare=5, frunze=4" }
+    """
+    return mm.grade_answer(ap.answer, ap.payload)

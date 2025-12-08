@@ -141,11 +141,67 @@ def format_question_text(payload: Dict[str, Any]) -> str:
 # ---------- grading ----------
 
 def _parse_pairs(answer: str, rl: List[str], cl: List[str]):
-    s = (answer or "").strip().lower()
-    if s in {"none","no","no ne","no nash","no pure ne","nu","nu exista","nu există"}:
+    """
+    Parsează răspunsul utilizatorului pentru echilibru Nash - versiune flexibilă îmbunătățită.
+    Acceptă multiple formate: "R1C1", "1,1", "A B", "(1,1)", "r1 c1", "rând 1 coloană 2", etc.
+    """
+    if not answer:
+        return []
+    
+    s = answer.strip()
+    s_lower = s.lower()
+    
+    # Verifică dacă utilizatorul spune că nu există echilibru Nash
+    none_patterns = [
+        "none", "no", "no ne", "no nash", "no pure ne", "nu", "nu exista", 
+        "nu există", "nu sunt", "nu avem", "lipsă", "lipsa", "niciun", 
+        "nici un", "zero", "0", "nimic", "fără", "fara", "nu există echilibru",
+        "nu exista echilibru", "nu sunt echilibre", "nu avem echilibru"
+    ]
+    if s_lower in none_patterns or any(pattern in s_lower for pattern in ["nu există", "nu sunt", "niciun echilibru", "nu avem echilibru"]):
         return None
-    for sep in [";", "\n"]:
+    
+    import re
+    
+    # Extrage perechi din formate complexe: "perechile (1,2) și (2,3)" sau "echilibrele R1C1, R2C2"
+    # Caută pattern-uri de tipul "(1,2)" sau "[1,2]" sau "R1C1" în întregul text
+    complex_pairs = []
+    
+    # Pattern pentru perechi în paranteze: (1,2), [1,2], {1,2}
+    # IMPORTANT: Caută în textul original, înainte de normalizare
+    paren_pairs = re.findall(r'[\(\[\{]\s*(\d+)\s*[,:]\s*(\d+)\s*[\)\]\}]', s)
+    for pair in paren_pairs:
+        try:
+            complex_pairs.append((int(pair[0])-1, int(pair[1])-1))
+        except:
+            pass
+    
+    # Pattern pentru R1C1 sau R1 C1
+    rc_pairs = re.findall(r'r\s*(\d+)\s*c\s*(\d+)', s_lower)
+    for pair in rc_pairs:
+        try:
+            complex_pairs.append((int(pair[0])-1, int(pair[1])-1))
+        except:
+            pass
+    
+    # Dacă am găsit perechi complexe, le folosim direct
+    # (pentru a evita procesarea dublă care poate genera duplicate sau perechi greșite)
+    if complex_pairs:
+        # Elimină duplicate
+        seen = set()
+        unique_pairs = []
+        for pair in complex_pairs:
+            if pair not in seen:
+                seen.add(pair)
+                unique_pairs.append(pair)
+        # Dacă am găsit perechi complexe, returnăm direct (nu procesăm și restul)
+        return unique_pairs
+    
+    # Normalizează separatori - extinde lista (doar dacă nu am găsit perechi complexe)
+    for sep in [";", "\n", "și", "and", "&", "si", "sau", "or", "|"]:
         s = s.replace(sep, ",")
+    
+    # Împarte în părți pentru procesare ulterioară
     parts = [p.strip() for p in s.split(",") if p.strip()]
     if not parts:
         return []
@@ -153,25 +209,149 @@ def _parse_pairs(answer: str, rl: List[str], cl: List[str]):
     rl_map = {x.lower(): i for i, x in enumerate(rl)}
     cl_map = {x.lower(): j for j, x in enumerate(cl)}
 
-    out = []
-    import re
+    out = list(complex_pairs)  # Pornește cu perechile găsite din pattern-uri complexe
+    
     for token in parts:
-        t = token.replace("(", "").replace(")", "").replace("-", " ")
-        m = re.search(r"r\s*(\d+)\s*c\s*(\d+)", t)  # r#c#
+        t = token.strip()
+        t_clean = t.replace("(", "").replace(")", "").replace("[", "").replace("]", "").replace("{", "").replace("}", "").replace("-", " ").replace("_", " ").replace(":", " ")
+        
+        # Skip dacă token-ul a fost deja procesat în complex_pairs
+        # Verifică dacă token-ul conține o pereche care a fost deja găsită
+        nums_in_token = re.findall(r'\d+', t_clean)
+        if len(nums_in_token) >= 2:
+            try:
+                token_pair = (int(nums_in_token[0])-1, int(nums_in_token[1])-1)
+                if token_pair in complex_pairs:
+                    continue
+            except:
+                pass
+        
+        # Format: "rând 1 coloană 2" sau "rand 1 coloana 2" sau "rândul 1, coloana 2"
+        m_rand_col = re.search(r'(?:rând|rand|rândul|randul|row)\s*(\d+).*?(?:coloană|coloană|coloana|col|column)\s*(\d+)', t_clean, re.IGNORECASE)
+        if m_rand_col:
+            try:
+                pair = (int(m_rand_col.group(1))-1, int(m_rand_col.group(2))-1)
+                if pair not in out:
+                    out.append(pair)
+                continue
+            except:
+                pass
+        
+        # Format invers: "coloană 2 rând 1"
+        m_col_rand = re.search(r'(?:coloană|coloană|coloana|col|column)\s*(\d+).*?(?:rând|rand|rândul|randul|row)\s*(\d+)', t_clean, re.IGNORECASE)
+        if m_col_rand:
+            try:
+                pair = (int(m_col_rand.group(2))-1, int(m_col_rand.group(1))-1)
+                if pair not in out:
+                    out.append(pair)
+                continue
+            except:
+                pass
+        
+        # Format: "r1c1" sau "r 1 c 1" sau "R1 C1"
+        m = re.search(r"r\s*(\d+)\s*c\s*(\d+)", t_clean, re.IGNORECASE)
         if m:
-            out.append((int(m.group(1))-1, int(m.group(2))-1)); continue
-        m2 = re.findall(r"\d+", t)
+            try:
+                pair = (int(m.group(1))-1, int(m.group(2))-1)
+                if pair not in out:
+                    out.append(pair)
+                continue
+            except:
+                pass
+        
+        # Format: "1,1" sau "1 1" sau "1:1" - două numere consecutive
+        m2 = re.findall(r"\d+", t_clean)
         if len(m2) >= 2:
-            out.append((int(m2[0])-1, int(m2[1])-1)); continue
-        toks = t.split()
-        if len(toks) == 2 and toks[0] in rl_map and toks[1] in cl_map:
-            out.append((rl_map[toks[0]], cl_map[toks[1]]))
+            try:
+                pair = (int(m2[0])-1, int(m2[1])-1)
+                if pair not in out:
+                    out.append(pair)
+                continue
+            except:
+                pass
+        
+        # Format: "A B" sau "A, B" sau "A și B" - etichete de rând și coloană
+        toks = t_clean.split()
+        if len(toks) >= 2:
+            tok1 = toks[0].lower()
+            tok2 = toks[1].lower()
+            # IMPORTANT: Verifică că primul e rând și al doilea e coloană
+            # Dacă ambele sunt rânduri sau ambele sunt coloane, ignoră (e greșit)
+            if tok1 in rl_map and tok2 in cl_map:
+                pair = (rl_map[tok1], cl_map[tok2])
+                if pair not in out:
+                    out.append(pair)
+                continue
+            # Dacă ambele sunt rânduri sau ambele sunt coloane, ignoră (nu e o pereche validă)
+            elif (tok1 in rl_map and tok2 in rl_map) or (tok1 in cl_map and tok2 in cl_map):
+                # Ignoră - nu e o pereche validă (ex: "RB RB" sau "CA CB")
+                continue
+        
+        # Format: "rând A coloană B" sau "A și B" - căutare în orice ordine
+        if len(toks) >= 2:
+            found_r = None
+            found_c = None
+            for tok in toks:
+                if tok.lower() in rl_map and found_r is None:
+                    found_r = rl_map[tok.lower()]
+                if tok.lower() in cl_map and found_c is None:
+                    found_c = cl_map[tok.lower()]
+            # IMPORTANT: Trebuie să avem exact un rând și o coloană
+            if found_r is not None and found_c is not None:
+                pair = (found_r, found_c)
+                if pair not in out:
+                    out.append(pair)
+                continue
+            # Dacă avem doar rânduri sau doar coloane, ignoră (nu e o pereche validă)
+            elif (found_r is not None and found_c is None) or (found_r is None and found_c is not None):
+                # Ignoră - nu e o pereche completă validă
+                continue
+        
+        # Format: "strategia R1 cu C2" sau "echilibru la R1 C2"
+        m_strategie = re.search(r'(?:strategia|strategie|echilibru|ne|nash)\s*(?:la|la|cu|with)?\s*r\s*(\d+).*?c\s*(\d+)', t_clean, re.IGNORECASE)
+        if m_strategie:
+            try:
+                pair = (int(m_strategie.group(1))-1, int(m_strategie.group(2))-1)
+                if pair not in out:
+                    out.append(pair)
+                continue
+            except:
+                pass
+    
     return out
 
 def grade_answer(answer: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     A = np.array(payload["A"]); B = np.array(payload["B"])
     rl, cl = payload["row_labels"], payload["col_labels"]
     gold = set(find_pure_nash(A,B))
+    
+    # Verifică dacă există perechi invalide în răspuns (două rânduri sau două coloane)
+    invalid_pairs = []
+    import re
+    s = answer.strip()
+    s_lower = s.lower()
+    
+    # Normalizează separatori
+    for sep in [";", "\n", "și", "and", "&", "si", "sau", "or", "|"]:
+        s = s.replace(sep, ",")
+    
+    parts = [p.strip() for p in s.split(",") if p.strip()]
+    rl_map = {x.lower(): i for i, x in enumerate(rl)}
+    cl_map = {x.lower(): j for j, x in enumerate(cl)}
+    
+    for token in parts:
+        t_clean = token.strip().replace("(", "").replace(")", "").replace("[", "").replace("]", "").replace("-", " ").replace("_", " ")
+        toks = t_clean.split()
+        if len(toks) >= 2:
+            tok1 = toks[0].lower()
+            tok2 = toks[1].lower()
+            # Verifică dacă ambele sunt rânduri (invalid) - inclusiv cazul când sunt identice (RA RA)
+            if tok1 in rl_map and tok2 in rl_map:
+                invalid_pairs.append(f"{toks[0]} {toks[1]}")
+            # Verifică dacă ambele sunt coloane (invalid) - inclusiv cazul când sunt identice (CC CC)
+            elif tok1 in cl_map and tok2 in cl_map:
+                invalid_pairs.append(f"{toks[0]} {toks[1]}")
+    
     parsed = _parse_pairs(answer, rl, cl)
 
     if parsed is None:  # user a zis "none"
@@ -182,18 +362,34 @@ def grade_answer(answer: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     user = set(parsed)
     if len(gold) == 0:
         if len(user) == 0:
-            return {"score": 100, "feedback": "Corect: nu există echilibru Nash pur."}
-        return {"score": 0, "feedback": "Greșit: ai indicat perechi, dar nu există niciun NE pur."}
+            feedback = "Corect: nu există echilibru Nash pur."
+            if invalid_pairs:
+                feedback += f" Notă: '{', '.join(invalid_pairs)}' nu sunt perechi valide (trebuie rând-coloană, nu rând-rând sau coloană-coloană)."
+            return {"score": 100, "feedback": feedback}
+        feedback = "Greșit: ai indicat perechi, dar nu există niciun NE pur."
+        if invalid_pairs:
+            feedback += f" De asemenea, '{', '.join(invalid_pairs)}' nu sunt perechi valide (trebuie rând-coloană)."
+        return {"score": 0, "feedback": feedback}
 
     correct = len(user & gold)
     wrong = len(user - gold)
     need = len(gold)
+    
+    # Dacă are perechi invalide, le tratăm ca perechi greșite
+    if invalid_pairs:
+        wrong += len(invalid_pairs)
+        # Nu le adăugăm la user pentru că nu sunt perechi valide
+    
     if correct == need and wrong == 0:
         return {"score": 100, "feedback": "Corect. Ai identificat toate echilibrele Nash."}
+    
     partial = max(0.0, (correct/need)*100.0 - 10.0*wrong)
     miss = need - correct
     fb = f"Parțial: {correct}/{need} corecte"
-    if wrong: fb += f", {wrong} greșite"
+    if wrong: 
+        fb += f", {wrong} greșite"
+        if invalid_pairs:
+            fb += f" (inclusiv perechi invalide: '{', '.join(invalid_pairs)}' - trebuie rând-coloană, nu rând-rând sau coloană-coloană)"
     if miss: fb += f", lipsesc {miss}"
     return {"score": round(partial, 2), "feedback": fb + "."}
 

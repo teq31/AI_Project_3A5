@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>SmarTest — Echilibru Nash</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
   <div class="container">
