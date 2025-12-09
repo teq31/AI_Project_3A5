@@ -15,6 +15,33 @@ body {
   line-height: 1.6;
 }
 
+.back-home {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 3px 9px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #4c51bf;
+  font-weight: 650;
+  font-size: 0.84rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.12);
+  transition: all 0.25s ease;
+}
+
+.back-home:hover {
+  background: rgba(247, 249, 255, 0.9);
+  border-color: #d1d9e6;
+  box-shadow: 0 8px 18px rgba(102, 126, 234, 0.18);
+  transform: translateY(-1px);
+}
+
 .container { 
   max-width: 1000px; 
   margin: 0 auto; 

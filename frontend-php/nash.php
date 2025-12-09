@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
+  <a href="index.php" class="back-home">⬅️ Înapoi la meniu</a>
   <div class="container">
     <h1>SmarTest — Echilibru Nash (strategii pure)</h1>
 
