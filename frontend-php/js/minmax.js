@@ -1,4 +1,4 @@
-const USE_PROXY = true;          // true = chem PHP proxy (fără CORS); false = chem direct FastAPI
+const USE_PROXY = true;          
 const API = "http://127.0.0.1:8000";
 
 let currentPayload = null;
@@ -50,7 +50,6 @@ function drawTree(treeData, visitedLeaves = []) {
   
   console.log("Drawing tree:", treeData, "Visited leaves:", visitedLeaves);
   
-  // Construiește structura nivelurilor
   const levels = [];
   const nodeMap = new Map();
   
@@ -73,13 +72,11 @@ function drawTree(treeData, visitedLeaves = []) {
   
   buildLevels(treeData);
   
-  // Calculează spacing adaptiv
   const maxNodesPerLevel = Math.max(...levels.map(level => level.length));
   const nodeWidth = 80;
   const horizontalSpacing = Math.max(50, Math.min(100, 900 / Math.max(maxNodesPerLevel, 1)));
   const verticalSpacing = 100;
   
-  // Creează container pentru arbore
   const treeWrapper = document.createElement("div");
   treeWrapper.className = "tree-wrapper";
   treeWrapper.style.position = "relative";
@@ -87,7 +84,6 @@ function drawTree(treeData, visitedLeaves = []) {
   treeWrapper.style.minHeight = `${levels.length * verticalSpacing}px`;
   treeWrapper.style.padding = "20px";
   
-  // Creează SVG pentru linii
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.className = "tree-svg";
   svg.style.position = "absolute";
@@ -99,7 +95,6 @@ function drawTree(treeData, visitedLeaves = []) {
   svg.style.zIndex = "1";
   svg.style.overflow = "visible";
   
-  // Desenează fiecare nivel
   levels.forEach((levelNodes, levelIndex) => {
     const levelDiv = document.createElement("div");
     levelDiv.className = "tree-level";
@@ -111,14 +106,12 @@ function drawTree(treeData, visitedLeaves = []) {
     levelDiv.style.zIndex = "10";
     levelDiv.style.minHeight = "70px";
     
-    // Eticheta nivelului pe stânga (poziționată absolut)
     const levelLabel = document.createElement("div");
     levelLabel.className = "tree-level-label";
     const levelType = levelNodes[0]?.type || "MAX";
     levelLabel.textContent = levelType;
     levelDiv.appendChild(levelLabel);
     
-    // Container pentru noduri - centrat
     const nodesContainer = document.createElement("div");
     nodesContainer.style.display = "flex";
     nodesContainer.style.justifyContent = "center";
@@ -126,14 +119,13 @@ function drawTree(treeData, visitedLeaves = []) {
     nodesContainer.style.gap = `${horizontalSpacing}px`;
     nodesContainer.style.width = "100%";
     nodesContainer.style.flexWrap = "nowrap";
-    nodesContainer.style.paddingLeft = "80px"; // Spațiu pentru etichetă
+    nodesContainer.style.paddingLeft = "80px"; 
     
     levelNodes.forEach((nodeInfo, nodeIndex) => {
       const nodeDiv = document.createElement("div");
       const isVisited = nodeInfo.visited;
       const nodeType = nodeInfo.type.toLowerCase();
       
-      // Construiește clasa corect
       let className = 'tree-node';
       if (nodeType === 'max') className += ' max';
       else if (nodeType === 'min') className += ' min';
@@ -145,12 +137,10 @@ function drawTree(treeData, visitedLeaves = []) {
       nodeDiv.style.position = "relative";
       nodeDiv.style.flexShrink = "0";
       
-      // Doar ID-ul nodului
       const labelDiv = document.createElement("div");
       labelDiv.className = "tree-node-label";
       labelDiv.textContent = nodeInfo.id;
       
-      // Doar valoarea (fără "?")
       const valueDiv = document.createElement("div");
       valueDiv.className = "tree-node-value";
       if (nodeInfo.value !== null) {
@@ -170,12 +160,9 @@ function drawTree(treeData, visitedLeaves = []) {
     treeWrapper.appendChild(levelDiv);
   });
   
-  // Adaugă SVG și wrapper-ul în container
   treeWrapper.appendChild(svg);
   container.appendChild(treeWrapper);
   
-  // Desenează liniile după ce nodurile sunt poziționate
-  // Folosim requestAnimationFrame pentru a ne asigura că toate elementele sunt renderate
   requestAnimationFrame(() => {
     setTimeout(() => {
       try {
@@ -187,15 +174,13 @@ function drawTree(treeData, visitedLeaves = []) {
         svg.setAttribute("height", svgHeight);
         svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
         
-        // Desenează liniile pentru fiecare nivel
         levels.forEach((levelNodes, levelIndex) => {
-          if (levelIndex === 0) return; // skip root level
+          if (levelIndex === 0) return; 
           
           levelNodes.forEach((nodeInfo) => {
             const childElement = document.getElementById(`node-${nodeInfo.id}`);
             if (!childElement) return;
             
-            // Găsește părintele
             const parentInfo = Array.from(nodeMap.values()).find(n => 
               n.children && n.children.some(c => c.id === nodeInfo.id)
             );
@@ -203,31 +188,21 @@ function drawTree(treeData, visitedLeaves = []) {
             if (parentInfo) {
               const parentElement = document.getElementById(`node-${parentInfo.id}`);
               if (parentElement) {
-                // Recalculează pozițiile pentru a fi siguri că sunt corecte
                 const parentRect = parentElement.getBoundingClientRect();
                 const childRect = childElement.getBoundingClientRect();
                 
-                // Calculează pozițiile relative la wrapper
-                // Punctul de pornire: centrul orizontal, exact la marginea de jos a nodului părinte
                 const x1 = parentRect.left + parentRect.width / 2 - wrapperRect.left;
                 const y1 = parentRect.top + parentRect.height - wrapperRect.top;
                 
-                // Punctul de sosire: centrul orizontal, exact la marginea de sus a nodului copil
-                // Extindem linia mai jos pentru a atinge efectiv nodul (ținând cont de border de 2px)
                 const x2 = childRect.left + childRect.width / 2 - wrapperRect.left;
-                // Calculăm poziția exactă a marginii de sus a nodului (ținând cont de border)
-                // getBoundingClientRect() include border-ul, deci trebuie să adăugăm mai mult pentru a atinge efectiv
-                const borderWidth = 2; // border-ul nodului
-                const y2 = childRect.top - wrapperRect.top + borderWidth + 4; // +4px pentru a atinge efectiv nodul
+                const borderWidth = 2;
+                const y2 = childRect.top - wrapperRect.top + borderWidth + 4;
                 
-                // Verifică că avem coordonate valide
                 if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
                   console.warn(`Invalid coordinates for line from ${parentInfo.id} to ${nodeInfo.id}`);
                   return;
                 }
                 
-                // Creează linia care conectează exact marginile nodurilor
-                // Extindem linia puțin mai jos pentru a se asigura că atinge nodul copil
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 line.setAttribute("x1", x1);
                 line.setAttribute("y1", y1);
@@ -236,7 +211,6 @@ function drawTree(treeData, visitedLeaves = []) {
                 line.setAttribute("stroke", "#333");
                 line.setAttribute("stroke-width", "2.5");
                 line.setAttribute("stroke-linecap", "round");
-                // Asigură-te că linia se extinde până la marginea efectivă a nodului
                 line.setAttribute("stroke-linejoin", "round");
                 svg.appendChild(line);
               }
@@ -246,7 +220,7 @@ function drawTree(treeData, visitedLeaves = []) {
       } catch (error) {
         console.error("Error drawing tree lines:", error);
       }
-    }, 200); // Mărit timpul de așteptare pentru a se asigura că toate elementele sunt renderate
+    }, 200);
   });
 }
 
@@ -260,7 +234,6 @@ async function loadQuestion() {
     const q = await callGenerate(depth, branching, valueMin, valueMax, seed);
     currentPayload = q;
     
-    // Desenează arborele vizual
     const treeContainer = document.getElementById("treeVisualization");
     if (treeContainer && q.tree) {
       drawTree(q.tree, q.solution.visited_leaves || []);
@@ -317,19 +290,201 @@ async function gradeAnswer() {
   }
 }
 
-// Așteaptă ca DOM-ul să fie complet încărcat
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() {
-    const genBtn = document.getElementById("genBtn");
-    const gradeBtn = document.getElementById("gradeBtn");
-    if (genBtn) genBtn.addEventListener("click", loadQuestion);
-    if (gradeBtn) gradeBtn.addEventListener("click", gradeAnswer);
-    // Nu încărca automat întrebarea la start
+
+function solveMinMaxAlphaBeta(depth, branching, leaves) {
+  let visitedIndices = [];
+  let log = [];
+  let leafPos = 0;
+
+  function minmax(level, maximizingPlayer, alpha, beta) {
+    if (level === depth - 1) {
+      const value = leaves[leafPos];
+      visitedIndices.push(leafPos);
+      log.push(
+        `Frunză #${leafPos}: valoare=${value}, α=${alpha}, β=${beta}`
+      );
+      leafPos++;
+      return value;
+    }
+
+    if (maximizingPlayer) {
+      let value = -Infinity;
+      log.push(`MAX la nivel ${level}, α=${alpha}, β=${beta}`);
+      for (let i = 0; i < branching; i++) {
+        const childVal = minmax(level + 1, false, alpha, beta);
+        value = Math.max(value, childVal);
+        alpha = Math.max(alpha, value);
+        log.push(`  → copil ${i}: value=${value}, α=${alpha}, β=${beta}`);
+        if (beta <= alpha) {
+          log.push(`  ❌ tăiere (beta cut-off) la copilul ${i}`);
+          break;
+        }
+      }
+      return value;
+    } else {
+      let value = Infinity;
+      log.push(`MIN la nivel ${level}, α=${alpha}, β=${beta}`);
+      for (let i = 0; i < branching; i++) {
+        const childVal = minmax(level + 1, true, alpha, beta);
+        value = Math.min(value, childVal);
+        beta = Math.min(beta, value);
+        log.push(`  → copil ${i}: value=${value}, α=${alpha}, β=${beta}`);
+        if (beta <= alpha) {
+          log.push(`  ❌ tăiere (alpha cut-off) la copilul ${i}`);
+          break;
+        }
+      }
+      return value;
+    }
+  }
+
+  const rootValue = minmax(0, true, -Infinity, Infinity);
+  return {
+    rootValue,
+    visitedLeaves: visitedIndices.length,
+    log: log.join("\n")
+  };
+}
+
+let customDepthInput, customBranchingInput, customLeavesInput,
+    customHint, solveCustomBtn, customResult, customSolution;
+
+function initCustomExercise() {
+  customDepthInput = document.getElementById("customDepth");
+  customBranchingInput = document.getElementById("customBranching");
+  customLeavesInput = document.getElementById("customLeaves");
+  customHint = document.getElementById("customHint");
+  solveCustomBtn = document.getElementById("solveCustomBtn");
+  customResult = document.getElementById("customResult");
+  customSolution = document.getElementById("customSolution");
+
+  if (!customDepthInput || !customBranchingInput || !customLeavesInput || !solveCustomBtn) {
+    return;
+  }
+
+  function updateCustomHint() {
+    const d = parseInt(customDepthInput.value, 10);
+    const b = parseInt(customBranchingInput.value, 10);
+    if (!isNaN(d) && !isNaN(b) && d >= 2 && b >= 2) {
+      const leavesCount = Math.pow(b, d - 1);
+      if (customHint) {
+        customHint.textContent =
+          `Trebuie să introduci exact ${leavesCount} valori de frunză (arbore complet cu ${d} niveluri și factor ${b}).`;
+      }
+    } else if (customHint) {
+      customHint.textContent = "";
+    }
+  }
+
+  customDepthInput.addEventListener("input", updateCustomHint);
+  customBranchingInput.addEventListener("input", updateCustomHint);
+  updateCustomHint();
+
+  solveCustomBtn.addEventListener("click", () => {
+    const d = parseInt(customDepthInput.value, 10);
+    const b = parseInt(customBranchingInput.value, 10);
+
+    if (isNaN(d) || isNaN(b) || d < 2 || b < 2) {
+      if (customResult) {
+        customResult.textContent = "Te rog completează corect adâncimea și factorul de ramificare.";
+        customResult.style.color = "red";
+      }
+      return;
+    }
+
+    const expectedLeaves = Math.pow(b, d - 1);
+
+    const parts = customLeavesInput.value
+      .split(/[\s,;]+/)
+      .filter(x => x.trim().length > 0);
+
+    if (parts.length !== expectedLeaves) {
+      if (customResult) {
+        customResult.textContent =
+          `Număr incorect de frunze: ai introdus ${parts.length}, dar pentru acest arbore ai nevoie de ${expectedLeaves}.`;
+        customResult.style.color = "red";
+      }
+      if (customSolution) customSolution.textContent = "";
+      return;
+    }
+
+    const leaves = parts.map(Number);
+    if (leaves.some(v => Number.isNaN(v))) {
+      if (customResult) {
+        customResult.textContent = "Toate valorile frunzelor trebuie să fie numere (int/float).";
+        customResult.style.color = "red";
+      }
+      if (customSolution) customSolution.textContent = "";
+      return;
+    }
+
+    try {
+      const { rootValue, visitedLeaves, log } = solveMinMaxAlphaBeta(d, b, leaves);
+      if (customResult) {
+        customResult.textContent =
+          `Valoarea din rădăcină: ${rootValue}, frunze vizitate: ${visitedLeaves}.`;
+        customResult.style.color = "green";
+      }
+      if (customSolution) customSolution.textContent = log;
+    } catch (e) {
+      console.error(e);
+      if (customResult) {
+        customResult.textContent = "A apărut o eroare la calcul. Verifică datele introduse.";
+        customResult.style.color = "red";
+      }
+      if (customSolution) customSolution.textContent = e?.message || "";
+    }
   });
-} else {
+}
+
+
+function setMode(mode) {
+  const solveSection = document.getElementById("solveSection");
+  const customSection = document.getElementById("customSection");
+  const buttons = document.querySelectorAll(".mode-btn");
+
+  if (!solveSection || !customSection) {
+    return;
+  }
+
+  if (mode === "solve") {
+    solveSection.style.display = "";
+    customSection.style.display = "none";
+  } else if (mode === "custom") {
+    solveSection.style.display = "none";
+    customSection.style.display = "";
+  }
+
+  buttons.forEach(btn => {
+    if (btn.dataset.mode === mode) {
+      btn.classList.add("active-mode");
+    } else {
+      btn.classList.remove("active-mode");
+    }
+  });
+}
+
+function initPage() {
   const genBtn = document.getElementById("genBtn");
   const gradeBtn = document.getElementById("gradeBtn");
   if (genBtn) genBtn.addEventListener("click", loadQuestion);
   if (gradeBtn) gradeBtn.addEventListener("click", gradeAnswer);
+
+  initCustomExercise();
+
+  const modeButtons = document.querySelectorAll(".mode-btn");
+  modeButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const mode = btn.dataset.mode;
+      setMode(mode);
+    });
+  });
+
+  setMode("solve");
 }
 
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPage);
+} else {
+  initPage();
+}

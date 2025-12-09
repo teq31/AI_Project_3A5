@@ -9,40 +9,101 @@
   <div class="container">
     <h1>SmarTest — Echilibru Nash (strategii pure)</h1>
 
-    <div class="card">
-      <h3>Generator</h3>
-      <div class="grid">
-        <div><label>Rows</label><input type="number" id="rows" value="3" min="2" max="6"></div>
-        <div><label>Cols</label><input type="number" id="cols" value="3" min="2" max="6"></div>
-        <div>
-          <label>NE constraint</label>
-          <select id="ensure">
-            <option value="any">any</option>
-            <option value="atleast_one" selected>atleast_one</option>
-            <option value="unique">unique</option>
-            <option value="none">none</option>
-          </select>
-        </div>
-        <div><label>Seed (opțional)</label><input type="number" id="seed" placeholder=""></div>
+    <!-- 🔁 Selector de mod -->
+    <div class="card" style="margin-bottom: 24px;">
+      <h3>Alege modul</h3>
+      <div class="row" style="gap: 10px; flex-wrap: wrap;">
+        <button class="mode-btn" data-mode="solve">Vreau să răspund la exerciții</button>
+        <button class="mode-btn" data-mode="custom">Vreau să introduc eu exercițiile</button>
       </div>
-      <button id="genBtn">Generează întrebare</button>
+      <small>
+        Poți comuta oricând între moduri fără să pierzi ce ai scris.
+      </small>
     </div>
 
-    <div class="card">
-      <h3>Întrebare</h3>
-      <pre id="question">(nimic încă)</pre>
-      <div class="row">
-        <input id="answer" placeholder="ex: R2 C1 / 2 1 / none">
-        <button id="gradeBtn">Evaluează</button>
+    <!-- 🟢 MODUL 1: răspunzi la exercițiile generate (CE AVEAI DEJA) -->
+    <div id="solveSection">
+      <div class="card">
+        <h3>Generator</h3>
+        <div class="grid">
+          <div>
+            <label>Rows</label>
+            <input type="number" id="rows" value="3" min="2" max="6">
+          </div>
+          <div>
+            <label>Cols</label>
+            <input type="number" id="cols" value="3" min="2" max="6">
+          </div>
+          <div>
+            <label>NE constraint</label>
+            <select id="ensure">
+              <option value="any">any</option>
+              <option value="atleast_one" selected>atleast_one</option>
+              <option value="unique">unique</option>
+              <option value="none">none</option>
+            </select>
+          </div>
+          <div>
+            <label>Seed (opțional)</label>
+            <input type="number" id="seed" placeholder="">
+          </div>
+        </div>
+        <button id="genBtn">Generează întrebare</button>
       </div>
-      <div id="result"></div>
-      <details style="margin-top:12px">
-        <summary>Arată soluția oficială</summary>
-        <pre id="solution"></pre>
-      </details>
+
+      <div class="card">
+        <h3>Întrebare</h3>
+        <pre id="question">(nimic încă)</pre>
+        <div class="row">
+          <input id="answer" placeholder="ex: R2 C1 / 2 1 / none">
+          <button id="gradeBtn">Evaluează</button>
+        </div>
+        <div id="result"></div>
+        <details style="margin-top:12px">
+          <summary>Arată soluția oficială</summary>
+          <pre id="solution"></pre>
+        </details>
+      </div>
+    </div>
+
+    <!-- 🔵 MODUL 2: utilizatorul își dă propria matrice de payoff -->
+    <div id="customSection" style="display:none;">
+      <div class="card">
+        <h3>Exercițiul tău — Echilibru Nash</h3>
+        <p>
+          Introdu jocul în formă normală: alegi numărul de linii și coloane, apoi scrii
+          <strong>matricea cu pay-off-uri</strong> pentru cei doi jucători.
+        </p>
+
+        <div class="grid">
+          <div>
+            <label>Rows (strategiile jucătorului 1)</label>
+            <input type="number" id="customRows" value="2" min="2" max="6">
+          </div>
+          <div>
+            <label>Cols (strategiile jucătorului 2)</label>
+            <input type="number" id="customCols" value="2" min="2" max="6">
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label>Matricea payoff-urilor</label>
+            <textarea id="customMatrix" rows="5"
+              placeholder="Format: fiecare linie = o strategie a jucătorului 1&#10;fiecare celulă = a,b (payoff jucător1, jucător2)&#10;Exemplu pentru 2x3:&#10;2,1 0,0 1,2&#10;3,0 1,1 0,3"></textarea>
+            <small id="customHint"></small>
+          </div>
+        </div>
+
+        <button id="solveCustomNashBtn">Calculează Echilibrul Nash</button>
+
+        <div id="customResult" style="margin-top: 10px;"></div>
+
+        <details style="margin-top:12px">
+          <summary>Detalii calcul</summary>
+          <pre id="customSolution"></pre>
+        </details>
+      </div>
     </div>
   </div>
 
-  <script src="js/smartest.js"></script>
+  <script src="js/smartest.js?v=2"></script>
 </body>
 </html>
