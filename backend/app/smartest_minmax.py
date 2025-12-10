@@ -488,7 +488,8 @@ def grade_answer(answer: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         feedback_parts.append(f"Nu ai furnizat valoarea rădăcinii. Corect este {gold_value}")
     
     # Caz special: dacă valoarea e corectă și nodurile sunt enumerate corect, dar nu a dat numărul exact
-    if value_correct and nodes_correct and user_leaves is None:
+    # IMPORTANT: Verifică înainte de a procesa numărul de frunze pentru a putea returna direct 75%
+    if value_correct and nodes_correct and user_leaves is None and mentioned_nodes:
         score = 75.0
         feedback_parts.append(f"Ai identificat corect nodurile frunze vizitate ({', '.join(sorted(mentioned_nodes))}), dar nu ai furnizat numărul exact de frunze. Corect este {gold_leaves} frunze vizitate")
         return {

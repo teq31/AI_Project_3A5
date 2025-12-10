@@ -176,6 +176,22 @@ def _parse_pairs(answer: str, rl: List[str], cl: List[str]):
         except:
             pass
     
+    # Pattern pentru perechi cu etichete în paranteze: (RA,CB), (RA CB), [RA,CB], etc.
+    # Caută pattern-uri precum (RA,CB) sau (RA CB) - etichete de rând și coloană
+    rl_map = {x.lower(): i for i, x in enumerate(rl)}
+    cl_map = {x.lower(): j for j, x in enumerate(cl)}
+    
+    # Pattern pentru (RA,CB) sau (RA CB) - etichete separate prin virgulă sau spațiu
+    label_paren_pattern = r'[\(\[\{]\s*([A-Za-z]+)\s*[,:\s]+\s*([A-Za-z]+)\s*[\)\]\}]'
+    label_paren_matches = re.findall(label_paren_pattern, s)
+    for match in label_paren_matches:
+        tok1 = match[0].strip().upper()
+        tok2 = match[1].strip().upper()
+        # Verifică dacă sunt etichete valide (rând și coloană)
+        if tok1.lower() in rl_map and tok2.lower() in cl_map:
+            complex_pairs.append((rl_map[tok1.lower()], cl_map[tok2.lower()]))
+        # Dacă sunt ambele rânduri sau ambele coloane, le ignorăm (vor fi detectate ca invalide mai târziu)
+    
     # Pattern pentru R1C1 sau R1 C1
     rc_pairs = re.findall(r'r\s*(\d+)\s*c\s*(\d+)', s_lower)
     for pair in rc_pairs:
@@ -184,22 +200,37 @@ def _parse_pairs(answer: str, rl: List[str], cl: List[str]):
         except:
             pass
     
-    # Dacă am găsit perechi complexe, le folosim direct
-    # (pentru a evita procesarea dublă care poate genera duplicate sau perechi greșite)
+    # Elimină duplicate din complex_pairs
+    seen = set()
+    unique_complex_pairs = []
+    for pair in complex_pairs:
+        if pair not in seen:
+            seen.add(pair)
+            unique_complex_pairs.append(pair)
+    complex_pairs = unique_complex_pairs
+    
+    # Dacă am găsit perechi în paranteze (numere sau etichete), le folosim direct
+    # și nu mai procesăm prin split(",") pentru a evita probleme când nu există virgulă între perechi
     if complex_pairs:
-        # Elimină duplicate
-        seen = set()
-        unique_pairs = []
-        for pair in complex_pairs:
-            if pair not in seen:
-                seen.add(pair)
-                unique_pairs.append(pair)
-        # Dacă am găsit perechi complexe, returnăm direct (nu procesăm și restul)
-        return unique_pairs
+        return complex_pairs
     
     # Normalizează separatori - extinde lista (doar dacă nu am găsit perechi complexe)
     for sep in [";", "\n", "și", "and", "&", "si", "sau", "or", "|"]:
         s = s.replace(sep, ",")
+    
+    # IMPORTANT: Înainte de split(","), încercăm să extragem perechi separate doar prin spațiu
+    # Pattern pentru perechi în paranteze separate prin spațiu: (1,3) (2,3)
+    spaced_paren_pairs = re.findall(r'[\(\[\{]\s*(\d+)\s*[,:]\s*(\d+)\s*[\)\]\}]', s)
+    if spaced_paren_pairs and len(spaced_paren_pairs) > 1:
+        # Dacă am găsit multiple perechi în paranteze, le procesăm direct
+        result = []
+        for pair in spaced_paren_pairs:
+            try:
+                result.append((int(pair[0])-1, int(pair[1])-1))
+            except:
+                pass
+        if result:
+            return result
     
     # Împarte în părți pentru procesare ulterioară
     parts = [p.strip() for p in s.split(",") if p.strip()]
@@ -335,12 +366,41 @@ def grade_answer(answer: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     for sep in [";", "\n", "și", "and", "&", "si", "sau", "or", "|"]:
         s = s.replace(sep, ",")
     
-    parts = [p.strip() for p in s.split(",") if p.strip()]
+    # IMPORTANT: Extrage perechi în paranteze înainte de split(",") pentru a detecta corect
+    # perechile chiar și când nu există virgulă între ele: (1,3) (2,3)
     rl_map = {x.lower(): i for i, x in enumerate(rl)}
     cl_map = {x.lower(): j for j, x in enumerate(cl)}
     
+    # Extrage toate perechile cu etichete în paranteze pentru detectarea perechilor invalide
+    paren_label_matches = re.findall(r'[\(\[\{]\s*([A-Za-z]+)\s*[,:\s]+\s*([A-Za-z]+)\s*[\)\]\}]', s)
+    for match in paren_label_matches:
+        tok1 = match[0].strip().upper()
+        tok2 = match[1].strip().upper()
+        # Verifică dacă ambele sunt rânduri (invalid)
+        if tok1.lower() in rl_map and tok2.lower() in rl_map:
+            invalid_pairs.append(f"({tok1},{tok2})")
+        # Verifică dacă ambele sunt coloane (invalid)
+        elif tok1.lower() in cl_map and tok2.lower() in cl_map:
+            invalid_pairs.append(f"({tok1},{tok2})")
+    
+    parts = [p.strip() for p in s.split(",") if p.strip()]
+    
     for token in parts:
-        t_clean = token.strip().replace("(", "").replace(")", "").replace("[", "").replace("]", "").replace("-", " ").replace("_", " ")
+        t_original = token.strip()
+        # Verifică dacă token-ul conține paranteze cu etichete (ex: (RA,CB) sau (CC,CC))
+        paren_label_match = re.search(r'[\(\[\{]\s*([A-Za-z]+)\s*[,:\s]+\s*([A-Za-z]+)\s*[\)\]\}]', t_original)
+        if paren_label_match:
+            tok1 = paren_label_match.group(1).strip().upper()
+            tok2 = paren_label_match.group(2).strip().upper()
+            # Verifică dacă ambele sunt rânduri (invalid) - inclusiv cazul când sunt identice (RA RA)
+            if tok1.lower() in rl_map and tok2.lower() in rl_map:
+                invalid_pairs.append(f"({tok1},{tok2})")
+            # Verifică dacă ambele sunt coloane (invalid) - inclusiv cazul când sunt identice (CC CC)
+            elif tok1.lower() in cl_map and tok2.lower() in cl_map:
+                invalid_pairs.append(f"({tok1},{tok2})")
+        
+        # Continuă cu verificarea normală (fără paranteze)
+        t_clean = t_original.replace("(", "").replace(")", "").replace("[", "").replace("]", "").replace("-", " ").replace("_", " ")
         toks = t_clean.split()
         if len(toks) >= 2:
             tok1 = toks[0].lower()
@@ -358,6 +418,13 @@ def grade_answer(answer: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         if len(gold) == 0:
             return {"score": 100, "feedback": "Corect: nu există echilibru Nash pur."}
         return {"score": 0, "feedback": f"Greșit: există {len(gold)} echilibru(rî) Nash pur."}
+
+    # Verifică dacă parsed este o listă validă (nu goală sau None)
+    if not parsed or len(parsed) == 0:
+        # Dacă nu s-au găsit perechi, dar există perechi invalide, le raportăm
+        if invalid_pairs:
+            return {"score": 0, "feedback": f"Nu am putut identifica perechi valide în răspunsul tău. Am detectat perechi invalide: '{', '.join(invalid_pairs)}' - trebuie rând-coloană, nu rând-rând sau coloană-coloană."}
+        return {"score": 0, "feedback": "Nu am putut identifica perechi valide în răspunsul tău. Te rog folosește formatul: (1,2), R1C1, sau etichete de rând și coloană (ex: RA CB)."}
 
     user = set(parsed)
     if len(gold) == 0:

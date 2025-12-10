@@ -139,15 +139,24 @@ function displayQuestion(index) {
     container.innerHTML = `
       <h4>Echilibru Nash (strategii pure)</h4>
       <pre>${question.question_text || ''}</pre>
-      <p><small>Răspunde cu perechile (ex: R1 C2, R2 C3) sau "none"</small></p>
+      <p><small>Răspunde cu perechile (ex: R1 C2, R2 C3, (1,2), (RA,CB)) sau "none"</small></p>
     `;
   } else {
+    // Pentru MinMax, creăm un container pentru arbore și apoi desenăm arborele
     container.innerHTML = `
       <h4>MinMax cu Alpha-Beta</h4>
-      ${generateTreeVisualization(question)}
-      <p><strong>Cerință:</strong> Care va fi valoarea din rădăcină și câte noduri frunze vor fi vizitate?</p>
-      <p><small>Format: "valoare număr_frunze" (ex: 5 4 sau valoare=5, frunze=4)</small></p>
+      <p><strong>Cerință:</strong> Pentru arborele dat, care va fi valoarea din rădăcină și câte noduri frunze vor fi vizitate în cazul aplicării strategiei MinMax cu optimizarea Alpha-Beta?</p>
+      <div id="quizTreeVisualization_${index}" style="margin: 20px 0; overflow-x: auto; padding: 20px; background: #f9f9f9; border-radius: 8px;"></div>
+      <p><small>Răspunde flexibil: "valoare=5, frunze=4" sau "5 4" sau "Frunzele sunt 4, iar valoarea este 5"</small></p>
     `;
+    
+    // Desenează arborele vizual dacă există date
+    if (question.tree) {
+      const visitedLeaves = question.solution?.visited_leaves || [];
+      setTimeout(() => {
+        drawTreeForQuiz(`quizTreeVisualization_${index}`, question.tree, visitedLeaves);
+      }, 100);
+    }
   }
   
   const answerInput = document.getElementById('quizAnswer');
@@ -181,32 +190,206 @@ function displayQuestion(index) {
     index === quizQuestions.length - 1 ? 'block' : 'none';
 }
 
-function generateTreeVisualization(question) {
-  if (!question.tree) return '<p>Arbore indisponibil</p>';
+// Funcție pentru desenarea arborelui vizual (copiată și adaptată din minmax.js)
+function drawTreeForQuiz(containerId, treeData, visitedLeaves = []) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error(`Tree visualization container ${containerId} not found!`);
+    return;
+  }
   
-  let html = '<div style="background: #f9f9f9; padding: 20px; border-radius: 8px; overflow-x: auto;">';
-  html += '<div style="font-family: monospace; white-space: pre;">';
+  container.innerHTML = "";
   
-  function renderNode(node, prefix = '', isLast = true) {
-    const marker = isLast ? '└── ' : '├── ';
-    const nodeInfo = node.type === 'LEAF' 
-      ? `${node.id} (${node.type}): ${node.value}`
-      : `${node.id} (${node.type})`;
+  if (!treeData) {
+    console.error("Tree data is missing!");
+    return;
+  }
+  
+  const levels = [];
+  const nodeMap = new Map();
+  
+  function buildLevels(node, level = 0) {
+    if (!levels[level]) levels[level] = [];
     
-    html += prefix + marker + nodeInfo + '\n';
+    const nodeInfo = {
+      ...node,
+      level,
+      visited: visitedLeaves.includes(node.id)
+    };
+    
+    levels[level].push(nodeInfo);
+    nodeMap.set(node.id, nodeInfo);
     
     if (node.children && node.children.length > 0) {
-      const newPrefix = prefix + (isLast ? '    ' : '│   ');
-      node.children.forEach((child, i) => {
-        renderNode(child, newPrefix, i === node.children.length - 1);
-      });
+      node.children.forEach(child => buildLevels(child, level + 1));
     }
   }
   
-  renderNode(question.tree);
-  html += '</div></div>';
+  buildLevels(treeData);
   
-  return html;
+  const maxNodesPerLevel = Math.max(...levels.map(level => level.length));
+  const nodeWidth = 80;
+  const horizontalSpacing = Math.max(50, Math.min(100, 900 / Math.max(maxNodesPerLevel, 1)));
+  const verticalSpacing = 100;
+  
+  const treeWrapper = document.createElement("div");
+  treeWrapper.className = "tree-wrapper";
+  treeWrapper.style.position = "relative";
+  treeWrapper.style.width = "100%";
+  treeWrapper.style.minHeight = `${levels.length * verticalSpacing}px`;
+  treeWrapper.style.padding = "20px";
+  
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.className = "tree-svg";
+  svg.style.position = "absolute";
+  svg.style.top = "0";
+  svg.style.left = "0";
+  svg.style.width = "100%";
+  svg.style.height = "100%";
+  svg.style.pointerEvents = "none";
+  svg.style.zIndex = "1";
+  svg.style.overflow = "visible";
+  
+  levels.forEach((levelNodes, levelIndex) => {
+    const levelDiv = document.createElement("div");
+    levelDiv.className = "tree-level";
+    levelDiv.style.display = "flex";
+    levelDiv.style.alignItems = "center";
+    levelDiv.style.gap = "15px";
+    levelDiv.style.marginBottom = "25px";
+    levelDiv.style.position = "relative";
+    levelDiv.style.zIndex = "10";
+    levelDiv.style.minHeight = "70px";
+    
+    const levelLabel = document.createElement("div");
+    levelLabel.className = "level-label";
+    const levelType = levelNodes[0]?.type || "MAX";
+    levelLabel.textContent = levelType;
+    levelLabel.style.minWidth = "60px";
+    levelLabel.style.fontWeight = "bold";
+    levelLabel.style.textAlign = "center";
+    levelLabel.style.padding = "8px";
+    levelLabel.style.borderRadius = "6px";
+    if (levelType === "MAX") {
+      levelLabel.style.background = "#e3f2fd";
+      levelLabel.style.color = "#1976d2";
+    } else if (levelType === "MIN") {
+      levelLabel.style.background = "#fff3e0";
+      levelLabel.style.color = "#f57c00";
+    } else {
+      levelLabel.style.background = "#f1f8e9";
+      levelLabel.style.color = "#558b2f";
+    }
+    levelDiv.appendChild(levelLabel);
+    
+    const nodesContainer = document.createElement("div");
+    nodesContainer.style.display = "flex";
+    nodesContainer.style.justifyContent = "center";
+    nodesContainer.style.alignItems = "center";
+    nodesContainer.style.gap = `${horizontalSpacing}px`;
+    nodesContainer.style.width = "100%";
+    nodesContainer.style.flexWrap = "nowrap";
+    nodesContainer.style.paddingLeft = "20px";
+    
+    levelNodes.forEach((nodeInfo) => {
+      const nodeDiv = document.createElement("div");
+      const isVisited = nodeInfo.visited;
+      const nodeType = nodeInfo.type.toLowerCase();
+      
+      let className = 'tree-node';
+      if (nodeType === 'max') className += ' max';
+      else if (nodeType === 'min') className += ' min';
+      else if (nodeType === 'leaf') className += ' leaf';
+      if (isVisited && nodeType !== 'leaf') className += ' visited';
+      
+      nodeDiv.className = className;
+      nodeDiv.id = `node-${nodeInfo.id}`;
+      nodeDiv.style.position = "relative";
+      nodeDiv.style.flexShrink = "0";
+      
+      const labelDiv = document.createElement("div");
+      labelDiv.className = "tree-node-label";
+      labelDiv.textContent = nodeInfo.id;
+      
+      const valueDiv = document.createElement("div");
+      valueDiv.className = "tree-node-value";
+      if (nodeInfo.value !== null) {
+        valueDiv.textContent = nodeInfo.value;
+      } else {
+        valueDiv.textContent = "";
+        valueDiv.style.minHeight = "20px";
+      }
+      
+      nodeDiv.appendChild(labelDiv);
+      nodeDiv.appendChild(valueDiv);
+      nodesContainer.appendChild(nodeDiv);
+    });
+    
+    levelDiv.appendChild(nodesContainer);
+    treeWrapper.appendChild(levelDiv);
+  });
+  
+  treeWrapper.appendChild(svg);
+  container.appendChild(treeWrapper);
+  
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      try {
+        const wrapperRect = treeWrapper.getBoundingClientRect();
+        const svgWidth = Math.max(wrapperRect.width, maxNodesPerLevel * (nodeWidth + horizontalSpacing) + 40);
+        const svgHeight = levels.length * verticalSpacing + 40;
+        
+        svg.setAttribute("width", svgWidth);
+        svg.setAttribute("height", svgHeight);
+        svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+        
+        levels.forEach((levelNodes, levelIndex) => {
+          if (levelIndex === 0) return;
+          
+          levelNodes.forEach((nodeInfo) => {
+            const childElement = document.getElementById(`node-${nodeInfo.id}`);
+            if (!childElement) return;
+            
+            const parentInfo = Array.from(nodeMap.values()).find(n => 
+              n.children && n.children.some(c => c.id === nodeInfo.id)
+            );
+            
+            if (parentInfo) {
+              const parentElement = document.getElementById(`node-${parentInfo.id}`);
+              if (parentElement) {
+                const parentRect = parentElement.getBoundingClientRect();
+                const childRect = childElement.getBoundingClientRect();
+                
+                const x1 = parentRect.left + parentRect.width / 2 - wrapperRect.left;
+                const y1 = parentRect.top + parentRect.height - wrapperRect.top;
+                
+                const x2 = childRect.left + childRect.width / 2 - wrapperRect.left;
+                const borderWidth = 2;
+                const y2 = childRect.top - wrapperRect.top + borderWidth + 4;
+                
+                if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
+                  return;
+                }
+                
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", x1);
+                line.setAttribute("y1", y1);
+                line.setAttribute("x2", x2);
+                line.setAttribute("y2", y2);
+                line.setAttribute("stroke", "#333");
+                line.setAttribute("stroke-width", "2.5");
+                line.setAttribute("stroke-linecap", "round");
+                line.setAttribute("stroke-linejoin", "round");
+                svg.appendChild(line);
+              }
+            }
+          });
+        });
+      } catch (error) {
+        console.error("Error drawing tree lines:", error);
+      }
+    }, 200);
+  });
 }
 
 async function submitAnswer() {
