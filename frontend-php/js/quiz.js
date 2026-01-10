@@ -24,8 +24,11 @@ function addQuestion() {
   div.innerHTML = `
     <label>Întrebarea ${index + 1}:</label>
     <select id="qtype_${index}">
-      <option value="nash">Echilibru Nash</option>
-      <option value="minmax">MinMax Alpha-Beta</option>
+      <option value="strategy">Problema 1: Identificare Strategie</option>
+      <option value="nash">Problema 2: Echilibru Nash</option>
+      <option value="csp">Problema 3: CSP cu Backtracking</option>
+      <option value="minmax">Problema 4: MinMax Alpha-Beta</option>
+      <option value="theory">Întrebare Teorie</option>
     </select>
     <button onclick="removeQuestion(${index})">✖</button>
   `;
@@ -81,8 +84,14 @@ async function startQuiz() {
       
       if (config.type === 'nash') {
         question = await generateNashQuestion();
-      } else {
+      } else if (config.type === 'minmax') {
         question = await generateMinMaxQuestion();
+      } else if (config.type === 'strategy') {
+        question = await generateProblem1Question();
+      } else if (config.type === 'csp') {
+        question = await generateCSPQuestion();
+      } else if (config.type === 'theory') {
+        question = await generateTheoryQuestion(config.topic_id, config.question_type);
       }
       
       quizQuestions.push({
@@ -126,6 +135,44 @@ async function generateMinMaxQuestion() {
   return await response.json();
 }
 
+async function generateProblem1Question() {
+  const problemTypes = ['n-queens', 'hanoi', 'graph_coloring', 'knight_tour'];
+  const problemType = problemTypes[Math.floor(Math.random() * problemTypes.length)];
+  
+  const url = USE_PROXY
+    ? `api/proxy_strategy_generate.php?problem_type=${problemType}`
+    : `${API}/problem1/generate?problem_type=${problemType}`;
+  
+  const response = await fetch(url);
+  return await response.json();
+}
+
+async function generateCSPQuestion() {
+  const problemTypes = ['simple', 'graph_coloring', 'sudoku'];
+  const problemType = problemTypes[Math.floor(Math.random() * problemTypes.length)];
+  const optimization = 'FC';
+  
+  const url = USE_PROXY
+    ? `api/proxy_csp_generate.php?problem_type=${problemType}&optimization=${optimization}`
+    : `${API}/csp/generate?problem_type=${problemType}&optimization=${optimization}`;
+  
+  const response = await fetch(url);
+  return await response.json();
+}
+
+async function generateTheoryQuestion(topicId = null, questionType = null) {
+  let url = USE_PROXY
+    ? `api/proxy_theory_generate.php?`
+    : `${API}/theory/generate?`;
+  
+  if (topicId) url += `&topic_id=${encodeURIComponent(topicId)}`;
+  if (questionType) url += `&question_type=${encodeURIComponent(questionType)}`;
+  
+  const response = await fetch(url);
+  const data = await response.json();
+  return data;
+}
+
 function displayQuestion(index) {
   currentQuestionIndex = index;
   const question = quizQuestions[index];
@@ -137,14 +184,14 @@ function displayQuestion(index) {
   
   if (question.type === 'nash') {
     container.innerHTML = `
-      <h4>Echilibru Nash (strategii pure)</h4>
-      <pre>${question.question_text || ''}</pre>
+      <h4>Problema 2: Echilibru Nash (strategii pure)</h4>
+      <pre style="white-space: pre-wrap; background: #1a202c; color: #e2e8f0; padding: 16px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.95rem; line-height: 1.6;">${question.question_text || ''}</pre>
       <p><small>Răspunde cu perechile (ex: R1 C2, R2 C3, (1,2), (RA,CB)) sau "none"</small></p>
     `;
-  } else {
+  } else if (question.type === 'minmax') {
     // Pentru MinMax, creăm un container pentru arbore și apoi desenăm arborele
     container.innerHTML = `
-      <h4>MinMax cu Alpha-Beta</h4>
+      <h4>Problema 4: MinMax cu Alpha-Beta</h4>
       <p><strong>Cerință:</strong> Pentru arborele dat, care va fi valoarea din rădăcină și câte noduri frunze vor fi vizitate în cazul aplicării strategiei MinMax cu optimizarea Alpha-Beta?</p>
       <div id="quizTreeVisualization_${index}" style="margin: 20px 0; overflow-x: auto; padding: 20px; background: #f9f9f9; border-radius: 8px;"></div>
       <p><small>Răspunde flexibil: "valoare=5, frunze=4" sau "5 4" sau "Frunzele sunt 4, iar valoarea este 5"</small></p>
@@ -157,6 +204,61 @@ function displayQuestion(index) {
         drawTreeForQuiz(`quizTreeVisualization_${index}`, question.tree, visitedLeaves);
       }, 100);
     }
+  } else if (question.type === 'strategy') {
+    container.innerHTML = `
+      <h4>Problema 1: Identificare Strategie</h4>
+      <pre style="white-space: pre-wrap; background: #1a202c; color: #e2e8f0; padding: 16px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.95rem; line-height: 1.6;">${question.question_text || ''}</pre>
+      <p><small>Răspunde cu numele strategiei (ex: Backtracking) sau numărul opțiunii (1-4)</small></p>
+    `;
+  } else if (question.type === 'csp') {
+    container.innerHTML = `
+      <h4>Problema 3: CSP cu Backtracking</h4>
+      <pre style="white-space: pre-wrap; background: #1a202c; color: #e2e8f0; padding: 16px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.95rem; line-height: 1.6;">${question.question_text || ''}</pre>
+      <p><small>Răspunde cu numele optimizării (ex: Forward Checking) sau numărul opțiunii (1-4)</small></p>
+    `;
+    } else if (question.type === 'theory') {
+    const theoryQuestion = question.question || question;
+    const theoryType = theoryQuestion.theory_type;
+    
+    let html = `<h4>Întrebare Teorie: ${theoryQuestion.topic_name || 'Teorie'}</h4>`;
+    html += `<p style="font-size: 1.1rem; margin: 16px 0; font-weight: 500;">${theoryQuestion.question_text || ''}</p>`;
+    
+    if (theoryType === 'multiple_choice') {
+      const options = theoryQuestion.options || [];
+      html += '<div style="margin: 16px 0;">';
+      options.forEach((opt, idx) => {
+        html += `<label style="display: block; padding: 12px; margin: 8px 0; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer;">
+          <input type="radio" name="theory_option_${index}" value="${idx + 1}" style="margin-right: 8px;">
+          ${idx + 1}. ${opt}
+        </label>`;
+      });
+      html += '</div>';
+      html += '<p><small>Răspunde cu numărul opțiunii (1-4) sau textul opțiunii</small></p>';
+    } else if (theoryType === 'true_false') {
+      html += '<p><small>Răspunde cu "Adevărat"/"True" sau "Fals"/"False" (acceptă variante: "Raspunsul este Fals", "Este Adevărat", etc.)</small></p>';
+    } else if (theoryType === 'fill_blank') {
+      html += '<p><small>Completează spațiile goale cu răspunsurile corecte (acceptă variante alternative)</small></p>';
+    } else if (theoryType === 'short_answer') {
+      html += '<p><small>Răspunde cu un răspuns scurt care să includă conceptele importante</small></p>';
+    } else if (theoryType === 'justification') {
+      html += '<p><small>Oferă o justificare detaliată. Folosește cuvinte precum "deoarece", "pentru că", etc.</small></p>';
+    } else if (theoryType === 'example') {
+      html += '<p><small>Oferă un exemplu concret. Folosește cuvinte precum "exemplu", "de exemplu", "instanță", etc.</small></p>';
+    } else if (theoryType === 'comparison') {
+      const concepts = theoryQuestion.concepts_to_compare || [];
+      html += `<p><small>Compară ${concepts.join(' și ')}. Menționează diferențe și/sau similarități</small></p>`;
+    } else if (theoryType === 'definition') {
+      html += '<p><small>Oferă o definiție completă care să includă toate elementele esențiale</small></p>';
+    } else if (theoryType === 'calculation') {
+      html += '<p><small>Oferă rezultatul calculului (acceptă numere, formule, sau descrieri verbale)</small></p>';
+    } else if (theoryType === 'matrix_analysis') {
+      html += '<p><small>Analizează jocul matriceal și oferă răspunsul (ex: "există echilibru Nash", "nu există", etc.)</small></p>';
+      if (theoryQuestion.matrix_data) {
+        html += '<p><small><em>Datele matricei sunt disponibile în întrebare</em></small></p>';
+      }
+    }
+    
+    container.innerHTML = html;
   }
   
   const answerInput = document.getElementById('quizAnswer');
@@ -407,8 +509,14 @@ async function submitAnswer() {
     let result;
     if (question.type === 'nash') {
       result = await gradeNashAnswer(question, answer);
-    } else {
+    } else if (question.type === 'minmax') {
       result = await gradeMinMaxAnswer(question, answer);
+    } else if (question.type === 'strategy') {
+      result = await gradeProblem1Answer(question, answer);
+    } else if (question.type === 'csp') {
+      result = await gradeCSPAnswer(question, answer);
+    } else if (question.type === 'theory') {
+      result = await gradeTheoryAnswer(question, answer);
     }
     
     question.result = result;
@@ -453,6 +561,67 @@ async function gradeMinMaxAnswer(question, answer) {
   return await response.json();
 }
 
+async function gradeProblem1Answer(question, answer) {
+  const body = JSON.stringify({ payload: question, answer });
+  
+  const url = USE_PROXY
+    ? 'api/proxy_strategy_grade.php'
+    : `${API}/problem1/grade`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body
+  });
+  
+  return await response.json();
+}
+
+async function gradeCSPAnswer(question, answer) {
+  const body = JSON.stringify({ payload: question, answer });
+  
+  const url = USE_PROXY
+    ? 'api/proxy_csp_grade.php'
+    : `${API}/csp/grade`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body
+  });
+  
+  return await response.json();
+}
+
+async function gradeTheoryAnswer(question, answer) {
+  // Pentru întrebările multiple choice, verifică dacă utilizatorul a selectat un radio button
+  const theoryQuestion = question.question || question;
+  if (theoryQuestion.theory_type === 'multiple_choice') {
+    const radioButtons = document.querySelectorAll(`input[name="theory_option_${currentQuestionIndex}"]`);
+    for (const radio of radioButtons) {
+      if (radio.checked) {
+        answer = radio.value; // Folosește numărul opțiunii
+        break;
+      }
+    }
+  }
+  
+  const payload = question.question || question;
+  const body = JSON.stringify({ payload: payload, answer: answer });
+  
+  const url = USE_PROXY
+    ? 'api/proxy_theory_grade.php'
+    : `${API}/theory/grade`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body
+  });
+  
+  return await response.json();
+}
+
 function prevQuestion() {
   if (currentQuestionIndex > 0) {
     displayQuestion(currentQuestionIndex - 1);
@@ -480,9 +649,15 @@ async function finishQuiz() {
     if (!q.submitted && quizAnswers[i].trim()) {
       q.userAnswer = quizAnswers[i];
       try {
-        q.result = q.type === 'nash'
-          ? await gradeNashAnswer(q, q.userAnswer)
-          : await gradeMinMaxAnswer(q, q.userAnswer);
+        if (q.type === 'nash') {
+          q.result = await gradeNashAnswer(q, q.userAnswer);
+        } else if (q.type === 'minmax') {
+          q.result = await gradeMinMaxAnswer(q, q.userAnswer);
+        } else if (q.type === 'strategy') {
+          q.result = await gradeProblem1Answer(q, q.userAnswer);
+        } else if (q.type === 'csp') {
+          q.result = await gradeCSPAnswer(q, q.userAnswer);
+        }
         q.submitted = true;
       } catch (error) {
         console.error('Error grading answer:', error);
@@ -520,7 +695,12 @@ async function finishQuiz() {
     
     detailsHTML += `
       <div class="question-result ${className}">
-        <strong>Întrebarea ${i + 1}</strong> (${q.type === 'nash' ? 'Nash' : 'MinMax'}): 
+        <strong>Întrebarea ${i + 1}</strong> (${
+          q.type === 'nash' ? 'Problema 2: Echilibru Nash' :
+          q.type === 'minmax' ? 'Problema 4: MinMax Alpha-Beta' :
+          q.type === 'strategy' ? 'Problema 1: Identificare Strategie' :
+          q.type === 'csp' ? 'Problema 3: CSP cu Backtracking' : q.type
+        }): 
         <strong>${score}%</strong><br>
         <small>Răspunsul tău: ${q.userAnswer || '(necompletat)'}</small><br>
         ${q.result ? `<small>${q.result.feedback}</small>` : ''}
@@ -615,10 +795,38 @@ function buildDetailedPrintableView() {
     else if (score > 0) scoreClass = 'partial';
 
     const treeText = q.type === 'minmax' && q.tree ? `<pre>${formatTreeForPDF(q.tree)}</pre>` : '';
-    const statementText = q.type === 'nash' ? (q.question_text || 'N/A') : 'Arbore MinMax cu optimizare Alpha-Beta:';
+    let statementText = '';
+    let questionTitle = '';
+    
+    if (q.type === 'nash') {
+      statementText = q.question_text || 'N/A';
+      questionTitle = 'Problema 2: Echilibru Nash';
+    } else if (q.type === 'minmax') {
+      statementText = 'Arbore MinMax cu optimizare Alpha-Beta:';
+      questionTitle = 'Problema 4: MinMax Alpha-Beta';
+    } else if (q.type === 'strategy') {
+      statementText = q.question_text || 'N/A';
+      questionTitle = 'Problema 1: Identificare Strategie';
+    } else if (q.type === 'csp') {
+      statementText = q.question_text || 'N/A';
+      questionTitle = 'Problema 3: CSP cu Backtracking';
+    } else if (q.type === 'theory') {
+      const theoryQ = q.question || q;
+      statementText = theoryQ.question_text || 'N/A';
+      questionTitle = `Întrebare Teorie: ${theoryQ.topic_name || 'Teorie'}`;
+      if (theoryQ.theory_type === 'multiple_choice' && theoryQ.options) {
+        statementText += '\n\nOpțiuni:';
+        theoryQ.options.forEach((opt, idx) => {
+          statementText += `\n${idx + 1}. ${opt}`;
+        });
+      }
+    } else {
+      statementText = q.question_text || 'N/A';
+      questionTitle = q.type;
+    }
 
     cardQ.innerHTML = `
-      <h4 style="margin-top:0;">Întrebarea ${idx + 1} - ${q.type === 'nash' ? 'Echilibru Nash' : 'MinMax Alpha-Beta'}</h4>
+      <h4 style="margin-top:0;">Întrebarea ${idx + 1} - ${questionTitle}</h4>
       <div style="background:#1a202c;color:#e2e8f0;padding:10px;border-radius:6px;margin-bottom:10px;">
         <strong>Enunț:</strong>
         <div style="margin-top:6px;white-space:pre-wrap;font-family:monospace;font-size:12px;">${statementText}</div>
@@ -743,7 +951,11 @@ function exportSummaryPDF(doc) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(74, 85, 104);
-    doc.text(`(${q.type === 'nash' ? 'Nash' : 'MinMax'}): `, 55, yPos + 6);
+    const typeLabel = q.type === 'nash' ? 'Problema 2: Nash' :
+                     q.type === 'minmax' ? 'Problema 4: MinMax' :
+                     q.type === 'strategy' ? 'Problema 1: Strategie' :
+                     q.type === 'csp' ? 'Problema 3: CSP' : q.type;
+    doc.text(`(${typeLabel}): `, 55, yPos + 6);
     
     doc.setFont('helvetica', 'bold');
     doc.text(`${score}%`, 85, yPos + 6);
@@ -831,7 +1043,11 @@ function exportDetailedPDF(doc) {
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(102, 126, 234); // #667eea
-    doc.text(`Întrebarea ${i + 1} - ${q.type === 'nash' ? 'Echilibru Nash' : 'MinMax Alpha-Beta'}`, 20, yPos + 7);
+    const questionTitle = q.type === 'nash' ? 'Problema 2: Echilibru Nash' :
+                         q.type === 'minmax' ? 'Problema 4: MinMax Alpha-Beta' :
+                         q.type === 'strategy' ? 'Problema 1: Identificare Strategie' :
+                         q.type === 'csp' ? 'Problema 3: CSP cu Backtracking' : q.type;
+    doc.text(`Întrebarea ${i + 1} - ${questionTitle}`, 20, yPos + 7);
     
     yPos += 15;
     
@@ -847,10 +1063,14 @@ function exportDetailedPDF(doc) {
     doc.setDrawColor(45, 55, 72);
     
     let questionHeight = 30;
-    if (q.type === 'nash') {
-      const lines = doc.splitTextToSize(q.question_text || 'N/A', pageWidth - 50);
+    let questionText = '';
+    
+    if (q.type === 'nash' || q.type === 'strategy' || q.type === 'csp') {
+      questionText = q.question_text || 'N/A';
+      const lines = doc.splitTextToSize(questionText, pageWidth - 50);
       questionHeight = Math.min(lines.length * 4 + 8, 50);
-    } else {
+    } else if (q.type === 'minmax') {
+      questionText = 'Arbore MinMax cu optimizare Alpha-Beta:';
       questionHeight = 45;
     }
     
@@ -860,12 +1080,12 @@ function exportDetailedPDF(doc) {
     doc.setFontSize(7);
     doc.setTextColor(226, 232, 240); // #e2e8f0 - light text on dark
     
-    if (q.type === 'nash') {
-      const questionLines = doc.splitTextToSize(q.question_text || 'N/A', pageWidth - 50);
+    if (q.type === 'nash' || q.type === 'strategy' || q.type === 'csp') {
+      const questionLines = doc.splitTextToSize(questionText, pageWidth - 50);
       questionLines.slice(0, 10).forEach((line, idx) => {
         doc.text(line, 25, yPos + 2 + (idx * 4));
       });
-    } else {
+    } else if (q.type === 'minmax') {
       doc.text('Arbore MinMax cu optimizare Alpha-Beta:', 25, yPos + 2);
       if (q.tree) {
         const treeText = formatTreeForPDF(q.tree);

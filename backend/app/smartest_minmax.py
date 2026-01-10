@@ -214,6 +214,9 @@ def _parse_answer(answer: str) -> Dict[str, Optional[int]]:
         r'(?:valoarea|value)\s*(?:este|e|are)\s*(?:în\s*numar|in\s*numar|egală|egala)\s*(?:de|cu)?\s*(-?\d+)',
         r'(?:iar\s*)?(?:rădăcină|root|radacina|radăcina)\s*(?:este|e|are|va\s*fi)\s*(-?\d+)',  # "iar radacina este -1"
         r'(?:iar\s*)?(?:valoarea|value)\s*(?:este|e|are)\s*(-?\d+)',  # "iar valoarea este -1"
+        r'(?:rezultatul|result)\s*(?:este|e|are|va\s*fi)\s*(-?\d+)',  # "rezultatul este 5"
+        r'(?:minmax|min-max|min max)\s*(?:returnează|return|va\s*returna|va\s*returneaza)\s*(-?\d+)',  # "minmax returnează 5"
+        r'(?:algoritmul|algorithm)\s*(?:returnează|return|va\s*returna|va\s*returneaza)\s*(-?\d+)',  # "algoritmul returnează 5"
     ]
     
     # Strategia 2: Căutare după cuvinte cheie specifice pentru frunze (prioritară)
@@ -228,6 +231,8 @@ def _parse_answer(answer: str) -> Dict[str, Optional[int]]:
         r'(?:frunze|leaves)\s*(?:sunt|au\s*fost|vor\s*fi)\s*(?:în\s*numar|in\s*numar)\s*(?:de|egal)?\s*(-?\d+)',
         r'(?:câte|cate|how\s*many)\s*(?:frunze|leaves|noduri)\s*(?:frunze|vizitate)?\s*(?:au\s*fost|sunt|vor\s*fi)?\s*(-?\d+)',
         r'(?:iar\s*)?(?:număr|number|numar)\s*(?:de\s*)?(?:frunze|leaves|noduri)\s*(?:frunze|vizitate)?\s*(?:este|e|sunt)\s*(-?\d+)',  # "iar numarul de frunze este 4"
+        r'(?:alpha-beta|alpha beta|alpha-beta pruning)\s*(?:vizitează|visits|viziteaza)\s*(-?\d+)',  # "alpha-beta vizitează 4"
+        r'(?:pruning|prună|pruna)\s*(?:elimină|elimina|eliminates)\s*(?:.*?)\s*(?:și|and|si)\s*(?:vizitează|visits|viziteaza)\s*(-?\d+)',  # "pruning elimină și vizitează 4"
     ]
     
     value = None

@@ -5,13 +5,13 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>SmarTest — MinMax cu Alpha-Beta</title>
+  <title>SmarTest — Problema 4: MinMax cu Alpha-Beta</title>
   <link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
   <a href="index.php" class="back-home">⬅️ Înapoi la meniu</a>
   <div class="container">
-    <h1>SmarTest — MinMax cu optimizare Alpha-Beta</h1>
+    <h1>SmarTest — Problema 4: MinMax cu optimizare Alpha-Beta</h1>
 
     <!-- 🔁 Selector de mod -->
     <div class="card" style="margin-bottom: 24px;">

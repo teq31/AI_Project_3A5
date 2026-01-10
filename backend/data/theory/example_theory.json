@@ -1,0 +1,542 @@
+{
+  "course": "Inteligenta Artificiala",
+  "version": "1.0",
+  "last_updated": "2024-12-01",
+  "topics": [
+    {
+      "topic_id": "nash_equilibrium_basics",
+      "topic_name": "Echilibru Nash - Baze",
+      "difficulty": "medium",
+      "category": "game_theory",
+      "theory": {
+        "definition": "Echilibru Nash este o combinație de strategii unde fiecare jucător alege strategia care maximizează utilitatea sa, dată strategiile celorlalți jucători. Niciun jucător nu poate îmbunătăți rezultatul său prin schimbarea unilaterală a strategiei.",
+        "key_concepts": [
+          {
+            "concept": "Best Response",
+            "definition": "Strategia care maximizează utilitatea unui jucător dată strategiile celorlalți jucători",
+            "formula": "BR_i(s_{-i}) = argmax_{s_i} u_i(s_i, s_{-i})",
+            "example": "Dacă jucătorul 2 alege strategia C2, best response pentru jucătorul 1 este strategia care maximizează u₁(s₁, C2)"
+          },
+          {
+            "concept": "Echilibru Nash",
+            "definition": "Profil de strategii s* = (s*_1, ..., s*_n) astfel încât pentru fiecare jucător i, s*_i este best response la s*_{-i}",
+            "formula": "u_i(s*_i, s*_{-i}) ≥ u_i(s_i, s*_{-i}) pentru toate s_i",
+            "example": "În dilema prizonierului, (Confesă, Confesă) este echilibru Nash deoarece fiecare jucător maximizează utilitatea dată strategia celuilalt"
+          },
+          {
+            "concept": "Strategii Pure vs Mixte",
+            "definition": "Strategii pure sunt deterministe (jucătorul alege o singură strategie), iar strategii mixte folosesc distribuții de probabilitate peste strategiile disponibile",
+            "formula": "Strategie mixtă: σ_i = (p₁, p₂, ..., p_k) unde Σp_j = 1",
+            "example": "În jocuri cu strategii mixte, jucătorul poate alege strategia 1 cu probabilitatea 0.6 și strategia 2 cu probabilitatea 0.4"
+          }
+        ],
+        "theorems": [
+          {
+            "name": "Teorema Nash (1950)",
+            "statement": "Orice joc finit cu informație completă are cel puțin un echilibru Nash în strategii mixte.",
+            "proof_hint": "Folosește teorema punctului fix a lui Brouwer pentru a demonstra existența",
+            "importance": "Fundamental - garantează că echilibru Nash există întotdeauna în jocuri finite"
+          }
+        ],
+        "examples": [
+          {
+            "name": "Dilema Prizonierului",
+            "description": "Joc clasic cu echilibru Nash suboptimal care demonstrează că echilibru Nash nu garantează optimul Pareto",
+            "players": ["Prizonier 1", "Prizonier 2"],
+            "strategies": {
+              "player1": ["Confesă", "Nu confesa"],
+              "player2": ["Confesă", "Nu confesa"]
+            },
+            "payoff_matrix": [
+              [[-5, -5], [0, -10]],
+              [[-10, 0], [-1, -1]]
+            ],
+            "nash_equilibrium": "(Confesă, Confesă)",
+            "pareto_optimal": "(Nu confesa, Nu confesa)",
+            "lesson": "Echilibru Nash poate fi suboptimal din perspectiva Pareto"
+          },
+          {
+            "name": "Joc Coordonare",
+            "description": "Joc cu multiple echilibre Nash în strategii pure",
+            "players": ["Jucător 1", "Jucător 2"],
+            "strategies": {
+              "player1": ["A", "B"],
+              "player2": ["A", "B"]
+            },
+            "payoff_matrix": [
+              [[2, 2], [0, 0]],
+              [[0, 0], [1, 1]]
+            ],
+            "nash_equilibria": ["(A, A)", "(B, B)"],
+            "lesson": "Echilibru Nash nu este întotdeauna unic"
+          }
+        ],
+        "common_mistakes": [
+          {
+            "mistake": "Confundarea echilibrului Nash cu optimul Pareto",
+            "correction": "Echilibru Nash este despre stabilitate individuală, nu optimizare globală. Optimul Pareto este despre eficiență colectivă."
+          },
+          {
+            "mistake": "Căutarea doar a echilibrelor în strategii pure",
+            "correction": "Teorema Nash garantează existența în strategii mixte. Trebuie să verificăm și strategiile mixte."
+          },
+          {
+            "mistake": "Presupunerea că echilibru Nash este întotdeauna unic",
+            "correction": "Jocurile pot avea zero, unul sau mai multe echilibre Nash."
+          }
+        ],
+        "related_topics": ["dominant_strategy", "pareto_optimality", "mixed_strategies"]
+      },
+      "question_templates": [
+        {
+          "type": "multiple_choice",
+          "template": "Care este definiția corectă a echilibrului Nash?",
+          "correct_answer": "Situație în care niciun jucător nu poate îmbunătăți rezultatul său prin schimbare unilaterală a strategiei",
+          "distractors": [
+            "Situație în care ambii jucători obțin câștig maxim posibil",
+            "Situație în care un jucător domină complet jocul",
+            "Situație în care jocul se termină rapid"
+          ],
+          "explanation": "Echilibru Nash este despre stabilitate - niciun jucător nu are motivație să schimbe strategia unilateral. Nu garantează optimizare globală.",
+          "difficulty": "easy"
+        },
+        {
+          "type": "multiple_choice",
+          "template": "Conform teoremei Nash, orice joc finit cu informație completă:",
+          "correct_answer": "Are cel puțin un echilibru Nash în strategii mixte",
+          "distractors": [
+            "Are întotdeauna echilibru Nash în strategii pure",
+            "Nu are întotdeauna echilibru Nash",
+            "Are exact un echilibru Nash"
+          ],
+          "explanation": "Teorema Nash garantează existența în strategii mixte, dar nu garantează existența în strategii pure sau unicitatea.",
+          "difficulty": "medium"
+        },
+        {
+          "type": "true_false",
+          "template": "Echilibru Nash garantează optimul Pareto.",
+          "correct_answer": false,
+          "explanation": "Echilibru Nash nu garantează optimul Pareto. În dilema prizonierului, echilibru Nash este (Confesă, Confesă) cu payoff (-5, -5), dar optimul Pareto este (Nu confesa, Nu confesa) cu payoff (-1, -1).",
+          "difficulty": "medium"
+        },
+        {
+          "type": "true_false",
+          "template": "Orice joc finit are cel puțin un echilibru Nash în strategii pure.",
+          "correct_answer": false,
+          "explanation": "Teorema Nash garantează existența în strategii mixte, nu în strategii pure. Există jocuri care nu au echilibru Nash în strategii pure.",
+          "difficulty": "hard"
+        },
+        {
+          "type": "fill_blank",
+          "template": "Best Response pentru jucătorul 1 este: BR₁(s₂) = _____",
+          "correct_answers": [
+            "argmax_{s₁} u₁(s₁, s₂)",
+            "argmax u1(s1, s2)",
+            "maximul utilității jucătorului 1",
+            "argmax s1 u1(s1, s2)"
+          ],
+          "case_sensitive": false,
+          "explanation": "Best Response este strategia care maximizează utilitatea jucătorului 1, dată strategia jucătorului 2.",
+          "difficulty": "medium"
+        },
+        {
+          "type": "short_answer",
+          "template": "Explică diferența între echilibru Nash în strategii pure și strategii mixte.",
+          "correct_keywords": [
+            "pure", "mixte", "probabilități", "determinist", "distribuție"
+          ],
+          "min_keywords": 3,
+          "explanation": "Strategii pure sunt deterministe - jucătorul alege o singură strategie. Strategii mixte folosesc distribuții de probabilitate peste strategiile disponibile, permițând jucătorului să randomizeze între strategii.",
+          "difficulty": "hard"
+        },
+        {
+          "type": "multiple_choice",
+          "template": "În dilema prizonierului, de ce (Confesă, Confesă) este echilibru Nash deși nu este optim Pareto?",
+          "correct_answer": "Pentru că fiecare jucător maximizează utilitatea individuală, chiar dacă rezultatul colectiv este suboptimal",
+          "distractors": [
+            "Pentru că este singura combinație de strategii posibilă",
+            "Pentru că ambii jucători obțin câștig maxim",
+            "Pentru că jocul este cooperativ"
+          ],
+          "explanation": "Echilibru Nash reflectă comportamentul individual rațional, care poate duce la rezultate suboptimale colectiv. Aceasta este esența dilemei prizonierului.",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "topic_id": "alpha_beta_pruning",
+      "topic_name": "Alpha-Beta Pruning",
+      "difficulty": "hard",
+      "category": "algorithms",
+      "theory": {
+        "definition": "Alpha-Beta pruning este o optimizare a algoritmului MinMax care elimină ramuri care nu pot influența decizia finală, reducând astfel numărul de noduri evaluate.",
+        "key_concepts": [
+          {
+            "concept": "Alpha",
+            "definition": "Valoarea cea mai bună pe care jucătorul MAX o poate garanta la nivelul curent sau mai sus în arbore",
+            "initial_value": "-∞",
+            "update_rule": "alpha = max(alpha, value) în noduri MAX"
+          },
+          {
+            "concept": "Beta",
+            "definition": "Valoarea cea mai bună pe care jucătorul MIN o poate garanta la nivelul curent sau mai sus în arbore",
+            "initial_value": "+∞",
+            "update_rule": "beta = min(beta, value) în noduri MIN"
+          },
+          {
+            "concept": "Pruning",
+            "definition": "Eliminarea unei ramuri când se știe că nu poate îmbunătăți valoarea curentă",
+            "condition": "Pruning se face când beta ≤ alpha",
+            "reason": "Dacă beta ≤ alpha, jucătorul MIN știe că MAX nu va alege această ramură, deci nu mai este nevoie să exploreze restul"
+          }
+        ],
+        "algorithms": [
+          {
+            "name": "Alpha-Beta Pruning",
+            "pseudocode": "function alphabeta(node, depth, alpha, beta, maximizing):\n  if depth == 0 or terminal(node):\n    return evaluate(node)\n  \n  if maximizing:\n    value = -∞\n    for child in children(node):\n      value = max(value, alphabeta(child, depth-1, alpha, beta, False))\n      alpha = max(alpha, value)\n      if beta <= alpha:\n        break  # Beta cutoff - pruning\n    return value\n  else:\n    value = +∞\n    for child in children(node):\n      value = min(value, alphabeta(child, depth-1, alpha, beta, True))\n      beta = min(beta, value)\n      if beta <= alpha:\n        break  # Alpha cutoff - pruning\n    return value",
+            "complexity_best": "O(b^(d/2))",
+            "complexity_worst": "O(b^d)",
+            "complexity_average": "O(b^(3d/4))",
+            "improvement": "În cel mai bun caz, reduce complexitatea la jumătate față de MinMax, permițând explorarea unei adâncimi duble în același timp"
+          }
+        ],
+        "optimization_tips": [
+          "Ordinea de explorare a copiilor este crucială - explorează mai întâi copiii promițători",
+          "Move ordering: ordonează mutările de la cele mai bune la cele mai slabe",
+          "În cel mai bun caz (ordine perfectă), se evaluează doar O(b^(d/2)) noduri"
+        ],
+        "common_mistakes": [
+          {
+            "mistake": "Presupunerea că Alpha-Beta reduce întotdeauna numărul de noduri",
+            "correction": "În cel mai rău caz (ordine inversă), Alpha-Beta evaluează același număr de noduri ca MinMax"
+          },
+          {
+            "mistake": "Confundarea condiției de pruning",
+            "correction": "Pruning se face când beta ≤ alpha, nu când alpha ≥ beta"
+          }
+        ]
+      },
+      "question_templates": [
+        {
+          "type": "multiple_choice",
+          "template": "Care este complexitatea algoritmului Alpha-Beta pruning în cel mai bun caz pentru un arbore cu branching factor b și adâncime d?",
+          "correct_answer": "O(b^(d/2))",
+          "distractors": [
+            "O(b^d)",
+            "O(b*d)",
+            "O(log b * d)"
+          ],
+          "explanation": "În cel mai bun caz, cu ordine perfectă de explorare, Alpha-Beta evaluează doar O(b^(d/2)) noduri, jumătate din câte ar evalua MinMax.",
+          "difficulty": "hard"
+        },
+        {
+          "type": "true_false",
+          "template": "Alpha-Beta pruning garantează întotdeauna reducerea numărului de noduri evaluate față de MinMax.",
+          "correct_answer": false,
+          "explanation": "În cel mai rău caz (ordine inversă), Alpha-Beta evaluează același număr de noduri ca MinMax. Beneficiul apare doar în cel mai bun caz sau cazuri medii.",
+          "difficulty": "medium"
+        },
+        {
+          "type": "multiple_choice",
+          "template": "Când se face pruning în algoritmul Alpha-Beta?",
+          "correct_answer": "Când beta ≤ alpha",
+          "distractors": [
+            "Când alpha ≥ beta",
+            "Când valoarea nodului este 0",
+            "Când adâncimea depășește limita"
+          ],
+          "explanation": "Pruning-ul se face când beta ≤ alpha. Aceasta înseamnă că jucătorul MIN știe că MAX nu va alege această ramură, deci nu mai este nevoie să exploreze restul.",
+          "difficulty": "medium"
+        },
+        {
+          "type": "fill_blank",
+          "template": "Valoarea inițială pentru alpha este _____ și pentru beta este _____.",
+          "correct_answers": [
+            ["-∞", "+∞"],
+            ["-infinity", "+infinity"],
+            ["minus infinit", "plus infinit"],
+            ["negative infinity", "positive infinity"]
+          ],
+          "case_sensitive": false,
+          "explanation": "Alpha începe cu -∞ (valoarea cea mai mică) pentru că MAX încearcă să maximizeze, iar beta începe cu +∞ (valoarea cea mai mare) pentru că MIN încearcă să minimizeze.",
+          "difficulty": "easy"
+        },
+        {
+          "type": "short_answer",
+          "template": "Explică de ce ordinea de explorare a copiilor este importantă în Alpha-Beta pruning.",
+          "correct_keywords": [
+            "ordine", "explorare", "pruning", "eficiență", "promițător", "timp"
+          ],
+          "min_keywords": 3,
+          "explanation": "Ordinea de explorare este crucială deoarece explorarea mai întâi a copiilor promițători (cu valori extreme) permite pruning mai devreme, reducând numărul de noduri evaluate. În cel mai bun caz, cu ordine perfectă, complexitatea scade la O(b^(d/2)).",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "topic_id": "ai_types",
+      "topic_name": "Tipuri de Inteligență Artificială",
+      "difficulty": "medium",
+      "category": "fundamentals",
+      "theory": {
+        "definition": "Inteligența Artificială poate fi clasificată în mai multe tipuri bazate pe capacitatea de învățare, tipul de cunoștințe folosite și aplicațiile.",
+        "key_concepts": [
+          {
+            "concept": "AI Simbolică",
+            "definition": "Folosește simboluri și reguli logice pentru reprezentarea cunoștințelor și raționament",
+            "examples": ["Sisteme expert", "Procesare limbaj natural clasică", "Planificare automată"]
+          },
+          {
+            "concept": "AI Conectionistă",
+            "definition": "Folosește rețele neuronale și învățare bazată pe date",
+            "examples": ["Deep Learning", "ChatGPT", "Sisteme de recunoaștere"]
+          },
+          {
+            "concept": "AI Reactivă",
+            "definition": "Răspunde la stimuli fără memorie sau planificare",
+            "examples": ["Agenti simpli", "Sisteme de control"]
+          },
+          {
+            "concept": "AI cu Memorie",
+            "definition": "Poate stoca experiențe și le folosește pentru decizii viitoare",
+            "examples": ["Sisteme de recomandare", "Agenti cu experiență"]
+          }
+        ],
+        "examples": [
+          {
+            "name": "ChatGPT",
+            "description": "Sistem de dialog bazat pe rețele neuronale (AI conectionistă)",
+            "type": "AI Conectionistă",
+            "reason": "Folosește deep learning și procesare limbaj natural bazată pe învățare din date"
+          },
+          {
+            "name": "Sistem expert medical",
+            "description": "Sistem care folosește reguli și cunoștințe simbolice",
+            "type": "AI Simbolică",
+            "reason": "Folosește reguli logice și baze de cunoștințe structurate"
+          }
+        ]
+      },
+      "question_templates": [
+        {
+          "type": "justification",
+          "template": "Care este tipul de Inteligență Artificială, dintre cele menționate în primul curs, care ar fi potrivit pentru un sistem de dialog de tipul ChatGPT? Justificați.",
+          "correct_keywords": [
+            "conectionistă", "conectionista", "rețele neuronale", "neural networks",
+            "deep learning", "învață din date", "invata din date", "learn from data",
+            "procesare limbaj natural", "natural language processing"
+          ],
+          "required_concepts": ["AI Conectionistă", "rețele neuronale"],
+          "min_keywords": 3,
+          "explanation": "ChatGPT este un sistem de AI conectionistă deoarece folosește rețele neuronale și deep learning pentru a învăța din date mari de text, permițând generarea de răspunsuri naturale în dialog.",
+          "difficulty": "medium"
+        },
+        {
+          "type": "justification",
+          "template": "Care este tipul de Inteligență Artificială potrivit pentru un program capabil să joace șah? Justificați.",
+          "correct_keywords": [
+            "simbolică", "simbolica", "reguli logice", "logical rules",
+            "planificare", "planning", "căutare", "search", "algoritmi",
+            "minmax", "alpha-beta", "strategie", "strategy"
+          ],
+          "required_concepts": ["AI Simbolică", "algoritmi de căutare"],
+          "min_keywords": 3,
+          "explanation": "Un program de șah folosește AI simbolică cu algoritmi de căutare (MinMax, Alpha-Beta) și planificare bazată pe reguli logice pentru a evalua mutările și a alege strategia optimă.",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "topic_id": "search_strategies",
+      "topic_name": "Strategii de Căutare",
+      "difficulty": "medium",
+      "category": "algorithms",
+      "theory": {
+        "definition": "Strategiile de căutare sunt metode pentru explorarea spațiului de stări în probleme de căutare, fiecare având avantaje și dezavantaje specifice.",
+        "key_concepts": [
+          {
+            "concept": "Backtracking",
+            "definition": "Strategie de căutare care explorează recursiv spațiul de stări, revenind când o stare nu duce la soluție",
+            "use_cases": ["Probleme cu constrângeri", "n-queens", "Sudoku", "Colorare grafuri"],
+            "characteristics": ["Completă", "Sistematică", "Poate fi ineficientă pentru spații mari"]
+          },
+          {
+            "concept": "Hillclimbing",
+            "definition": "Strategie greedy care alege întotdeauna starea cu cea mai bună valoare euristică",
+            "use_cases": ["Optimizare continuă", "Probleme cu spații mari"],
+            "characteristics": ["Rapidă", "Poate rămâne blocată în minime locale", "Necesită euristică bună"]
+          },
+          {
+            "concept": "Simulated Annealing",
+            "definition": "Strategie care permite mutări către stări mai slabe cu probabilitate descrescătoare",
+            "use_cases": ["Optimizare globală", "Probleme complexe"],
+            "characteristics": ["Evită minime locale", "Parametri sensibili", "Mai lentă decât Hillclimbing"]
+          }
+        ]
+      },
+      "question_templates": [
+        {
+          "type": "justification",
+          "template": "Care din strategiile discutate în cursurile 2 și 3 ar fi potrivită pentru o problemă de plasare a pieselor X și O într-o matrice 3x3 cu constrângeri? Justificați.",
+          "correct_keywords": [
+            "backtracking", "căutare sistematică", "cautare sistematica",
+            "constrângeri", "constraints", "verificare", "verificare stări",
+            "completă", "completa", "recursiv", "recursive"
+          ],
+          "required_concepts": ["Backtracking", "constrângeri"],
+          "min_keywords": 3,
+          "explanation": "Backtracking este potrivit pentru probleme cu constrângeri deoarece permite verificarea sistematică a stărilor și revenirea când constrângerile nu sunt respectate, garantând găsirea soluției dacă există.",
+          "difficulty": "medium"
+        },
+        {
+          "type": "justification",
+          "template": "Propuneți o reprezentare pentru o stare a problemei de plasare piese X și O. Justificați alegerea.",
+          "correct_keywords": [
+            "matrice", "matrix", "tablou", "array", "poziție", "pozitie",
+            "coordonate", "linie", "coloană", "colona", "celulă", "celula",
+            "stare", "state", "configurație", "configuratie"
+          ],
+          "min_keywords": 3,
+          "explanation": "O reprezentare potrivită ar fi o matrice 3x3 unde fiecare celulă poate fi X, O sau goală. Aceasta permite verificarea ușoară a constrângerilor (linii, coloane, diagonale) și generarea stărilor următoare.",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "topic_id": "heuristics",
+      "topic_name": "Euristici",
+      "difficulty": "hard",
+      "category": "algorithms",
+      "theory": {
+        "definition": "O euristică este o funcție care estimează costul de la o stare la starea țintă, folosită pentru a ghida căutarea.",
+        "key_concepts": [
+          {
+            "concept": "Euristică Admisibilă",
+            "definition": "O euristică care nu supraestimează niciodată costul real (h(n) ≤ h*(n))",
+            "property": "Garantează optimalitate în A*",
+            "example": "Distanța Manhattan în 8-puzzle"
+          },
+          {
+            "concept": "Euristică Consistentă",
+            "definition": "O euristică care respectă inegalitatea triunghiului: h(n) ≤ c(n,n') + h(n')",
+            "property": "O euristică consistentă este și admisibilă",
+            "example": "Distanța euclidiană"
+          },
+          {
+            "concept": "Combinarea Euristicilor",
+            "definition": "Dacă h₁ și h₂ sunt admisibile, atunci max(h₁, h₂) este admisibilă, dar media lor nu este întotdeauna admisibilă",
+            "property": "g(s) × 0.5 + h(s) × 0.5 nu este întotdeauna admisibilă dacă g și h sunt admisibile"
+          }
+        ]
+      },
+      "question_templates": [
+        {
+          "type": "true_false",
+          "template": "Dacă g(s) și h(s) sunt euristici admisibile, este și g(s) × 0.5 + h(s) × 0.5 întotdeauna o euristică admisibilă? Justificați.",
+          "correct_answer": false,
+          "explanation": "Nu, media a două euristici admisibile nu este întotdeauna admisibilă. De exemplu, dacă g(s) = 5 și h(s) = 3, iar costul real este 4, atunci g(s) × 0.5 + h(s) × 0.5 = 4, care este corect. Dar dacă costul real este 3.5, media 4 supraestimează costul real, deci nu este admisibilă.",
+          "difficulty": "hard"
+        },
+        {
+          "type": "justification",
+          "template": "Pentru un joc de tip Tic-Tac-Toe, propuneți o euristică ce permite strategiei MIN-MAX să funcționeze ca mecanism de decizie pentru primul jucător. Justificați.",
+          "correct_keywords": [
+            "evaluare", "evaluation", "scor", "score", "linii", "coloane",
+            "diagonale", "câștig", "castig", "win", "blocare", "blocking",
+            "amenințare", "amenintare", "threat", "centru", "colțuri", "colturi"
+          ],
+          "min_keywords": 4,
+          "explanation": "O euristică potrivită ar evalua starea bazându-se pe: numărul de linii/coloane/diagonale complete cu X (câștig), numărul de linii/coloane/diagonale cu 2 X și 1 gol (amenințare de câștig), blocarea amenințărilor adversarului, controlul centrului și colțurilor. Funcția ar returna valori pozitive pentru stări favorabile jucătorului X.",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "topic_id": "csp_basics",
+      "topic_name": "Probleme de Satisfacere a Constrângerilor (CSP)",
+      "difficulty": "medium",
+      "category": "algorithms",
+      "theory": {
+        "definition": "CSP este o problemă definită de un set de variabile, domenii pentru fiecare variabilă, și constrângeri care limitează valorile pe care variabilele le pot lua simultan.",
+        "key_concepts": [
+          {
+            "concept": "Arc Consistency",
+            "definition": "O variabilă X este arc-consistentă cu variabila Y dacă pentru fiecare valoare din domeniul lui X există o valoare în domeniul lui Y care satisface constrângerea",
+            "algorithm": "AC-3",
+            "use": "Reducerea domeniilor variabilelor înainte de căutare"
+          },
+          {
+            "concept": "Forward Checking",
+            "definition": "La atribuirea unei valori unei variabile, se verifică și se actualizează domeniile variabilelor neasignate conectate prin constrângeri",
+            "advantage": "Detectează mai devreme inconsistențe",
+            "use": "Optimizare pentru Backtracking"
+          }
+        ]
+      },
+      "question_templates": [
+        {
+          "type": "short_answer",
+          "template": "Aplicați algoritmul arc consistency pentru a actualiza domeniile variabilelor în următoarea problemă CSP: X ∈ {1,2,...,10}, Y ∈ {5,6,...,15}, Z ∈ {5,6,...,20} cu constrângerile X > Y, Y + Z = 12, X + Z = 16.",
+          "correct_keywords": [
+            "arc", "consistency", "domeniu", "domain", "reducere",
+            "constrângere", "constraint", "verificare", "eliminare",
+            "valori", "values", "inconsistent", "inconsistență"
+          ],
+          "min_keywords": 4,
+          "explanation": "Algoritmul arc consistency verifică fiecare pereche de variabile conectate prin constrângeri și elimină valorile din domenii care nu au suport în domeniul celeilalte variabile, reducând astfel spațiul de căutare.",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "topic_id": "ontologies",
+      "topic_name": "Ontologii",
+      "difficulty": "medium",
+      "category": "knowledge_representation",
+      "theory": {
+        "definition": "O ontologie este o reprezentare formală și explicită a cunoștințelor dintr-un domeniu, incluzând concepte, proprietăți, relații și instanțe.",
+        "key_concepts": [
+          {
+            "concept": "Instanțe",
+            "definition": "Obiecte concrete care aparțin unei clase sau concepte din ontologie",
+            "role": "Exemplifică conceptele abstracte și permit raționament despre cazuri specifice",
+            "example": "În ontologia animalelor, 'Fido' este o instanță a clasei 'Câine'"
+          },
+          {
+            "concept": "Limitări",
+            "definition": "Există cunoștințe care nu pot fi reprezentate complet în ontologii formale",
+            "examples": ["Cunoștințe tacite", "Context dependent", "Cunoștințe incomplete", "Experiență personală"]
+          }
+        ]
+      },
+      "question_templates": [
+        {
+          "type": "justification",
+          "template": "Există situații în care o parte din cunoștințele specifice unui domeniu nu poate fi reprezentată într-o ontologie? Justificați și exemplificați.",
+          "correct_keywords": [
+            "da", "yes", "limitări", "limitations", "cunoștințe tacite",
+            "tacite knowledge", "context", "experiență", "experienta",
+            "experiență personală", "personal experience", "incompletă",
+            "incompleta", "incomplete", "implicită", "implicita", "implicit"
+          ],
+          "min_keywords": 3,
+          "explanation": "Da, există cunoștințe care nu pot fi reprezentate complet în ontologii: cunoștințe tacite (know-how, experiență personală), cunoștințe dependente de context, cunoștințe incomplete sau incerte, și experiențe subiective care variază între persoane.",
+          "difficulty": "medium"
+        },
+        {
+          "type": "definition",
+          "template": "Care este rolul instanțelor într-o ontologie? Exemplificați.",
+          "correct_keywords": [
+            "exemplifică", "exemplifica", "exemplify", "concrete", "specifice",
+            "specifice", "specific", "raționament", "rationament", "reasoning",
+            "cazuri", "cases", "obiecte", "objects", "clase", "classes"
+          ],
+          "min_keywords": 3,
+          "explanation": "Instanțele sunt obiecte concrete care aparțin claselor din ontologie. Ele exemplifică conceptele abstracte și permit raționament despre cazuri specifice. De exemplu, în ontologia animalelor, 'Fido' este o instanță a clasei 'Câine', permițând raționament despre proprietățile specifice ale lui Fido.",
+          "difficulty": "easy"
+        }
+      ]
+    }
+  ]
+}
+

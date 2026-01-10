@@ -144,6 +144,7 @@ def _parse_pairs(answer: str, rl: List[str], cl: List[str]):
     """
     Parsează răspunsul utilizatorului pentru echilibru Nash - versiune flexibilă îmbunătățită.
     Acceptă multiple formate: "R1C1", "1,1", "A B", "(1,1)", "r1 c1", "rând 1 coloană 2", etc.
+    Acceptă și numere în format text: "unu, doi", "primul, al doilea", etc.
     """
     if not answer:
         return []
@@ -151,14 +152,66 @@ def _parse_pairs(answer: str, rl: List[str], cl: List[str]):
     s = answer.strip()
     s_lower = s.lower()
     
+    # Funcție helper pentru conversia numerelor în text la numere
+    def text_to_number(text: str) -> Optional[int]:
+        """Convertește numere în format text la numere întregi"""
+        text = text.strip().lower()
+        number_map = {
+            # Română
+            "unu": 1, "una": 1, "primul": 1, "prima": 1, "intai": 1, "întâi": 1, "intâi": 1,
+            "doi": 2, "doua": 2, "două": 2, "al doilea": 2, "a doua": 2, "doilea": 2,
+            "trei": 3, "treia": 3, "al treilea": 3, "a treia": 3, "treilea": 3,
+            "patru": 4, "patra": 4, "al patrulea": 4, "a patra": 4, "patrulea": 4,
+            "cinci": 5, "cincea": 5, "a cincea": 5, "al cincilea": 5, "cincilea": 5,
+            "sase": 6, "șase": 6, "sasea": 6, "șasea": 6, "a șasea": 6, "al șaselea": 6,
+            "sapte": 7, "șapte": 7, "saptea": 7, "șaptea": 7, "a șaptea": 7, "al șaptelea": 7,
+            "opt": 8, "opta": 8, "a opta": 8, "al optulea": 8, "optulea": 8,
+            "noua": 9, "nouă": 9, "a noua": 9, "al nouălea": 9, "nouălea": 9,
+            "zece": 10, "zecea": 10, "a zecea": 10, "al zecelea": 10,
+            # Engleză
+            "one": 1, "first": 1,
+            "two": 2, "second": 2,
+            "three": 3, "third": 3,
+            "four": 4, "fourth": 4,
+            "five": 5, "fifth": 5,
+            "six": 6, "sixth": 6,
+            "seven": 7, "seventh": 7,
+            "eight": 8, "eighth": 8,
+            "nine": 9, "ninth": 9,
+            "ten": 10, "tenth": 10
+        }
+        return number_map.get(text)
+    
     # Verifică dacă utilizatorul spune că nu există echilibru Nash
+    
+    # Verifică dacă utilizatorul spune că nu există echilibru Nash
+    # Versiune extinsă cu mai multe variante
     none_patterns = [
         "none", "no", "no ne", "no nash", "no pure ne", "nu", "nu exista", 
         "nu există", "nu sunt", "nu avem", "lipsă", "lipsa", "niciun", 
         "nici un", "zero", "0", "nimic", "fără", "fara", "nu există echilibru",
-        "nu exista echilibru", "nu sunt echilibre", "nu avem echilibru"
+        "nu exista echilibru", "nu sunt echilibre", "nu avem echilibru",
+        "nu exista nash", "nu există nash", "nu exista echilibre", "nu există echilibre",
+        "nu exista echilibru nash", "nu există echilibru nash", "nu exista ne",
+        "nu există ne", "nu exista nash pur", "nu există nash pur",
+        "lipsa echilibrelor", "lipsă echilibrelor", "fara echilibru", "fără echilibru",
+        "nu se gaseste", "nu se găsește", "nu se gasesc", "nu se găsesc",
+        "nu gasim", "nu găsim", "nu gasim echilibru", "nu găsim echilibru",
+        "absent", "lipseste", "lipsește", "nu e", "nu este", "nu sunt echilibre nash"
     ]
-    if s_lower in none_patterns or any(pattern in s_lower for pattern in ["nu există", "nu sunt", "niciun echilibru", "nu avem echilibru"]):
+    
+    # Verifică potrivire exactă
+    if s_lower in none_patterns:
+        return None
+    
+    # Verifică pattern-uri în text
+    none_phrases = [
+        "nu există", "nu exista", "nu sunt", "niciun echilibru", "nu avem echilibru",
+        "nu există nash", "nu exista nash", "nu există ne", "nu exista ne",
+        "nu există echilibru", "nu exista echilibru", "nu sunt echilibre",
+        "lipsă echilibru", "lipsa echilibru", "fără echilibru", "fara echilibru"
+    ]
+    if any(phrase in s_lower for phrase in none_phrases):
         return None
     
     import re
@@ -298,6 +351,21 @@ def _parse_pairs(answer: str, rl: List[str], cl: List[str]):
                 if pair not in out:
                     out.append(pair)
                 continue
+            except:
+                pass
+        
+        # Format: numere în format text - "unu, doi" sau "primul, al doilea"
+        text_number_pattern = r'\b(unu|una|primul|prima|intai|întâi|intâi|doi|doua|două|al doilea|a doua|doilea|trei|treia|al treilea|a treia|treilea|patru|patra|al patrulea|a patra|patrulea|cinci|cincea|a cincea|al cincilea|cincilea|sase|șase|sasea|șasea|a șasea|al șaselea|sapte|șapte|saptea|șaptea|a șaptea|al șaptelea|opt|opta|a opta|al optulea|optulea|noua|nouă|a noua|al nouălea|nouălea|zece|zecea|a zecea|al zecelea|one|first|two|second|three|third|four|fourth|five|fifth|six|sixth|seven|seventh|eight|eighth|nine|ninth|ten|tenth)\b'
+        text_numbers = re.findall(text_number_pattern, t_clean, re.IGNORECASE)
+        if len(text_numbers) >= 2:
+            try:
+                num1 = text_to_number(text_numbers[0])
+                num2 = text_to_number(text_numbers[1])
+                if num1 is not None and num2 is not None:
+                    pair = (num1-1, num2-1)
+                    if pair not in out:
+                        out.append(pair)
+                    continue
             except:
                 pass
         

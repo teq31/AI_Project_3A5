@@ -34,8 +34,11 @@
     <h1>SmarTest</h1>
     <p>Alege tipul de întrebare:</p>
     <ul class="menu">
-      <li><a href="nash.php">Echilibru Nash (strategii pure)</a></li>
-      <li><a href="minmax.php">MinMax cu optimizare Alpha-Beta</a></li>
+      <li><a href="strategy.php">Problema 1: Identificare Strategie</a></li>
+      <li><a href="nash.php">Problema 2: Echilibru Nash</a></li>
+      <li><a href="csp.php">Problema 3: CSP cu Backtracking</a></li>
+      <li><a href="minmax.php">Problema 4: MinMax cu Alpha-Beta</a></li>
+      <li><a href="theory.php">Întrebări Teorie</a></li>
       <li class="quiz-button"><a href="quiz.php">Generare quiz-uri</a></li>
     </ul>
   </div>
