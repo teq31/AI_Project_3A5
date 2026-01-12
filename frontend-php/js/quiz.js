@@ -505,6 +505,16 @@ async function submitAnswer() {
   const question = quizQuestions[currentQuestionIndex];
   question.userAnswer = answer;
   
+  // Show loading state
+  const feedbackEl = document.getElementById('questionFeedback');
+  if (feedbackEl) {
+    feedbackEl.innerHTML = `
+      <div style="margin-top: 16px; padding: 16px; border-radius: 10px; background: #edf2ff; color: #434190; text-align: center;">
+        ⏳ Se evaluează răspunsul...
+      </div>
+    `;
+  }
+  
   try {
     let result;
     if (question.type === 'nash') {
@@ -525,6 +535,13 @@ async function submitAnswer() {
     displayQuestion(currentQuestionIndex);
   } catch (error) {
     console.error('Error grading answer:', error);
+    if (feedbackEl) {
+      feedbackEl.innerHTML = `
+        <div style="margin-top: 16px; padding: 16px; border-radius: 10px; background: #fed7d7; color: #742a2a;">
+          <strong>Eroare:</strong> ${error.message}
+        </div>
+      `;
+    }
     alert('Eroare la evaluarea răspunsului: ' + error.message);
   }
 }
@@ -634,6 +651,131 @@ function nextQuestion() {
   }
 }
 
+// Funcție pentru încărcarea răspunsurilor din document
+async function loadAnswersFromFile() {
+  const fileInput = document.getElementById('answerFile');
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    alert('Te rog selectează un fișier!');
+    return;
+  }
+  
+  if (quizQuestions.length === 0) {
+    alert('Nu există întrebări generate. Te rog începe quiz-ul mai întâi!');
+    return;
+  }
+  
+  try {
+    let answers = [];
+    
+    if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+      answers = await processTextFile(file);
+    } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+      answers = await processPDFFile(file);
+    } else {
+      alert('Format de fișier nesuportat! Te rog folosește .txt sau .pdf');
+      return;
+    }
+    
+    if (answers.length === 0) {
+      alert('Nu s-au găsit răspunsuri în document!');
+      return;
+    }
+    
+    // Populează răspunsurile
+    for (let i = 0; i < Math.min(answers.length, quizQuestions.length); i++) {
+      quizAnswers[i] = answers[i];
+    }
+    
+    // Actualizează input-ul curent
+    const answerInput = document.getElementById('quizAnswer');
+    if (quizAnswers[currentQuestionIndex]) {
+      answerInput.value = quizAnswers[currentQuestionIndex];
+    }
+    
+    alert(`S-au încărcat ${Math.min(answers.length, quizQuestions.length)} răspunsuri din document!`);
+    
+    // Resetează input-ul de fișier
+    fileInput.value = '';
+    
+  } catch (error) {
+    console.error('Eroare la procesarea fișierului:', error);
+    alert('Eroare la procesarea fișierului: ' + error.message);
+  }
+}
+
+// Procesare fișier text
+function processTextFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result;
+        // Împarte pe linii și filtrează liniile goale
+        const answers = text.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0);
+        resolve(answers);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = () => reject(new Error('Eroare la citirea fișierului'));
+    reader.readAsText(file);
+  });
+}
+
+// Procesare fișier PDF
+async function processPDFFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        const arrayBuffer = e.target.result;
+        
+        // Verifică dacă PDF.js este disponibil
+        const pdfjs = window.pdfjsLib || window.pdfjs;
+        if (!pdfjs) {
+          reject(new Error('PDF.js nu este încărcat! Te rog reîncarcă pagina.'));
+          return;
+        }
+        
+        // Configurează PDF.js worker
+        pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        
+        const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        
+        let fullText = '';
+        
+        // Citește toate paginile
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join('\n');
+          fullText += pageText + '\n';
+        }
+        
+        // Împarte pe linii și filtrează liniile goale
+        const answers = fullText.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0);
+        
+        resolve(answers);
+      } catch (error) {
+        reject(new Error('Eroare la procesarea PDF: ' + error.message));
+      }
+    };
+    
+    reader.onerror = () => reject(new Error('Eroare la citirea fișierului PDF'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 async function finishQuiz() {
   // Check if all questions are answered
   const unanswered = quizQuestions.filter((q, i) => !quizAnswers[i].trim()).length;
@@ -642,6 +784,23 @@ async function finishQuiz() {
     if (!confirm(`Ai ${unanswered} întrebări fără răspuns. Vrei să finalizezi oricum?`)) {
       return;
     }
+  }
+  
+  // Show loading state
+  const finishBtn = document.getElementById('finishBtn');
+  const originalFinishBtnText = finishBtn ? finishBtn.innerHTML : '';
+  if (finishBtn) {
+    finishBtn.disabled = true;
+    finishBtn.innerHTML = '⏳ Se finalizează...';
+  }
+  
+  const feedbackEl = document.getElementById('questionFeedback');
+  if (feedbackEl) {
+    feedbackEl.innerHTML = `
+      <div style="margin-top: 16px; padding: 16px; border-radius: 10px; background: #edf2ff; color: #434190; text-align: center;">
+        ⏳ Se evaluează răspunsurile finale...
+      </div>
+    `;
   }
   
   // Grade any remaining answers that were not submitted yet
@@ -663,6 +822,12 @@ async function finishQuiz() {
         console.error('Error grading answer:', error);
       }
     }
+  }
+  
+  // Restore button state
+  if (finishBtn) {
+    finishBtn.disabled = false;
+    finishBtn.innerHTML = originalFinishBtnText;
   }
 
   quizFinished = true;

@@ -186,6 +186,21 @@ if (!isset($_SESSION['user_id'])) {
           <button onclick="submitAnswer()">Trimite răspuns</button>
         </div>
         
+        <div style="margin-top: 12px; padding: 12px; background: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <label for="answerFile" style="display: block; margin-bottom: 8px; font-weight: 600; color: #4a5568;">
+            📄 Sau încarcă un document cu răspunsurile:
+          </label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="file" id="answerFile" accept=".txt,.pdf" style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px;">
+            <button onclick="loadAnswersFromFile()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+              Încarcă răspunsuri
+            </button>
+          </div>
+          <small style="display: block; margin-top: 6px; color: #718096;">
+            Acceptă fișiere .txt sau .pdf. Răspunsurile trebuie să fie separate pe linii (fiecare linie = un răspuns).
+          </small>
+        </div>
+        
         <div id="questionFeedback"></div>
         
         <div class="quiz-navigation">
@@ -232,6 +247,7 @@ if (!isset($_SESSION['user_id'])) {
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="js/quiz.js?v=2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="js/quiz.js?v=3"></script>
 </body>
 </html>

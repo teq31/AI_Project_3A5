@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
   <meta charset="UTF-8">
   <title>SmarTest — Echilibru Nash</title>
   <link rel="stylesheet" href="css/style.css?v=7">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
   <a href="index.php" class="back-home">⬅️ Înapoi la meniu</a>
@@ -66,6 +67,22 @@ if (!isset($_SESSION['user_id'])) {
           <input id="answer" placeholder="ex: R2 C1 / 2 1 / none">
           <button id="gradeBtn">Evaluează</button>
         </div>
+        
+        <div style="margin-top: 12px; padding: 12px; background: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <label for="answerFile" style="display: block; margin-bottom: 8px; font-weight: 600; color: #4a5568;">
+            📄 Sau încarcă un document cu răspunsul:
+          </label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="file" id="answerFile" accept=".txt,.pdf" style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px;">
+            <button onclick="loadAnswerFromFile()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+              Încarcă răspuns
+            </button>
+          </div>
+          <small style="display: block; margin-top: 6px; color: #718096;">
+            Acceptă fișiere .txt sau .pdf. Va fi încărcat primul răspuns din document.
+          </small>
+        </div>
+        
         <div id="result"></div>
         <details style="margin-top:12px">
           <summary>Arată soluția oficială</summary>
@@ -97,6 +114,21 @@ if (!isset($_SESSION['user_id'])) {
             <textarea id="customMatrix" rows="5"
               placeholder="Format: fiecare linie = o strategie a jucătorului 1&#10;fiecare celulă = a,b (payoff jucător1, jucător2)&#10;Exemplu pentru 2x3:&#10;2,1 0,0 1,2&#10;3,0 1,1 0,3"></textarea>
             <small id="customHint"></small>
+            
+            <div style="margin-top: 12px; padding: 12px; background: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <label for="customMatrixFile" style="display: block; margin-bottom: 8px; font-weight: 600; color: #4a5568;">
+                📄 Sau încarcă un document cu matricea payoff-urilor:
+              </label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="file" id="customMatrixFile" accept=".txt,.pdf" style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px;">
+                <button onclick="loadCustomMatrixFromFile()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                  Încarcă document
+                </button>
+              </div>
+              <small style="display: block; margin-top: 6px; color: #718096;">
+                Acceptă fișiere .txt sau .pdf. Conținutul va fi încărcat în textarea.
+              </small>
+            </div>
           </div>
         </div>
 
