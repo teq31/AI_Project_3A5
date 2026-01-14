@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="ro">
 <head>
@@ -7,8 +14,20 @@
   <meta http-equiv="Expires" content="0">
   <title>SmarTest — Problema 4: MinMax cu Alpha-Beta</title>
   <link rel="stylesheet" href="css/style.css?v=7">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const replayId = params.get('replay');
+      if (replayId) {
+        window.addEventListener('load', function() {
+          loadReplayMinmax(replayId);
+        });
+      }
+    })();
+  </script>
   <a href="index.php" class="back-home">⬅️ Înapoi la meniu</a>
   <div class="container">
     <h1>SmarTest — Problema 4: MinMax cu optimizare Alpha-Beta</h1>
@@ -50,6 +69,22 @@
           <input id="answer" placeholder="ex: 5 4 sau valoare=5, frunze=4">
           <button id="gradeBtn">Evaluează</button>
         </div>
+        
+        <div style="margin-top: 12px; padding: 12px; background: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <label for="answerFile" style="display: block; margin-bottom: 8px; font-weight: 600; color: #4a5568;">
+            📄 Sau încarcă un document cu răspunsul:
+          </label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="file" id="answerFile" accept=".txt,.pdf" style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px;">
+            <button onclick="loadAnswerFromFile()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+              Încarcă răspuns
+            </button>
+          </div>
+          <small style="display: block; margin-top: 6px; color: #718096;">
+            Acceptă fișiere .txt sau .pdf. Va fi încărcat primul răspuns din document.
+          </small>
+        </div>
+        
         <div id="result"></div>
         <details style="margin-top:12px">
           <summary>Arată soluția oficială</summary>
@@ -81,6 +116,21 @@
             <textarea id="customLeaves" rows="3"
                       placeholder="ex: 3 5 -2 7 4 1 0 9"></textarea>
             <small id="customHint"></small>
+            
+            <div style="margin-top: 12px; padding: 12px; background: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <label for="customLeavesFile" style="display: block; margin-bottom: 8px; font-weight: 600; color: #4a5568;">
+                📄 Sau încarcă un document cu valorile frunzelor:
+              </label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="file" id="customLeavesFile" accept=".txt,.pdf" style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px;">
+                <button onclick="loadCustomLeavesFromFile()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                  Încarcă document
+                </button>
+              </div>
+              <small style="display: block; margin-top: 6px; color: #718096;">
+                Acceptă fișiere .txt sau .pdf. Conținutul va fi încărcat în textarea.
+              </small>
+            </div>
           </div>
         </div>
 

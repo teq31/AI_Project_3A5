@@ -1,3 +1,13 @@
+<?php
+// frontend-php/index.php
+session_start();
+
+// VERIFICARE: Dacă utilizatorul NU este logat, îl trimitem la login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="ro">
 <head>
@@ -8,6 +18,33 @@
   <title>SmarTest — Meniu</title>
   <link rel="stylesheet" href="css/style.css?v=8">
   <style>
+    /* Stiluri pentru bara de sus (User Info) */
+    .top-bar {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: white;
+        font-family: 'Segoe UI', sans-serif;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 10px 20px;
+        border-radius: 20px;
+        backdrop-filter: blur(5px);
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+    .top-bar a {
+        color: #fab1a0;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 0.9em;
+        transition: 0.3s;
+    }
+    .top-bar a:hover {
+        color: #ffeaa7;
+    }
+    
+    /* Stilurile tale existente */
     .quiz-button {
       margin-top: 24px;
     }
@@ -30,6 +67,14 @@
   </style>
 </head>
 <body>
+
+  <div class="top-bar">
+      <span>Salut, <strong><?= htmlspecialchars($_SESSION['username']) ?></strong>!</span>
+      <span>|</span>
+      <a href="profile.php">Profilul meu</a>
+      <a href="logout.php" style="color: #ff7675;">Deconectare</a>
+  </div>
+
   <div class="container">
     <h1>SmarTest</h1>
     <p>Alege tipul de întrebare:</p>
@@ -39,6 +84,7 @@
       <li><a href="csp.php">Problema 3: CSP cu Backtracking</a></li>
       <li><a href="minmax.php">Problema 4: MinMax cu Alpha-Beta</a></li>
       <li><a href="theory.php">Întrebări Teorie</a></li>
+      <li><a href="chat.php">Chat AI pentru teorie</a></li>
       <li class="quiz-button"><a href="quiz.php">Generare quiz-uri</a></li>
     </ul>
   </div>

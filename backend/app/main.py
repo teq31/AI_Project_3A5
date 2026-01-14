@@ -7,6 +7,7 @@ import app.smartest_problem1 as p1
 import app.smartest_csp as csp
 import app.theory_questions as theory_q
 import app.theory_grading as theory_g
+import app.chatbot as chatbot
 
 app = FastAPI(title="SmarTest API", version="0.1.0")
 
@@ -22,6 +23,13 @@ app.add_middleware(
 class AnswerPayload(BaseModel):
     payload: dict
     answer: str
+
+
+class ChatPayload(BaseModel):
+    question: str
+    topic_id: str | None = None
+    theory_file: str = "example_theory.json"
+    max_sources: int = 3
 
 @app.get("/health")
 def health():
@@ -186,3 +194,17 @@ def grade_theory(ap: AnswerPayload):
     Body: { "payload": <json intrebare>, "answer": <raspuns utilizator> }
     """
     return theory_g.grade_answer(ap.answer, ap.payload)
+
+
+@app.post("/chat/ask")
+def chat_ask(ap: ChatPayload):
+    """
+    Răspunde la întrebări libere pe baza teoriei disponibile.
+    Body: { "question": "...", "topic_id": "optional", "theory_file": "...", "max_sources": 3 }
+    """
+    return chatbot.answer_question(
+        question=ap.question,
+        topic_id=ap.topic_id,
+        theory_file=ap.theory_file,
+        max_sources=ap.max_sources
+    )

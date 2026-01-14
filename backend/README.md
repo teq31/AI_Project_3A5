@@ -36,3 +36,5 @@ pip install -r requirements.txt
 
 # 4️⃣ Pornește serverul FastAPI
 uvicorn app.main:app --reload --port 8000
+
+---

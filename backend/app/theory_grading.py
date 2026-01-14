@@ -1474,19 +1474,58 @@ def _grade_example(answer: str, question: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _grade_comparison(answer: str, question: Dict[str, Any]) -> Dict[str, Any]:
-    """Evaluează răspunsul la o întrebare care cere comparare - foarte flexibil"""
+    """Evaluează răspunsul la o întrebare care cere comparare - foarte flexibil cu NLP"""
     answer_original = answer.strip()
     answer = answer_original.lower()
     concepts_to_compare = question.get("concepts_to_compare", [])
     comparison_keywords = [kw.lower() for kw in question.get("comparison_keywords", [])]
     min_keywords = question.get("min_keywords", 3)
+    correct_answer = question.get("correct_answer", "")
     
     if not concepts_to_compare or len(concepts_to_compare) < 2:
+        method = "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback")
         return {
             "score": 0,
-            "feedback": "Eroare: Nu există concepte definite pentru comparare."
+            "feedback": "Eroare: Nu există concepte definite pentru comparare.",
+            "similarity": 0.0,
+            "method": method
         }
     
+    # PRIORITATE 1: Folosește NLP dacă este disponibil și există correct_answer
+    method = "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback (Simple Matching)")
+    if NLP_ENABLED and correct_answer and correct_answer.strip():
+        try:
+            similarity = semantic_similarity(answer_original, correct_answer)
+            logging.getLogger(__name__).info(f"NLP semantic similarity for comparison: {similarity:.2f}")
+            
+            if similarity >= 0.80:
+                return {
+                    "score": 100,
+                    "feedback": f"Excelentă comparație! Răspunsul tău este semantic corect (similaritate: {similarity:.0%}). {question.get('explanation', '')}",
+                    "similarity": similarity,
+                    "method": "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback")
+                }
+            elif similarity >= 0.65:
+                score = int(85 + (similarity - 0.65) / 0.15 * 15)  # 85-100%
+                return {
+                    "score": score,
+                    "feedback": f"Bună comparație! Exprimi corect ideea principală (similaritate: {similarity:.0%}). {question.get('explanation', '')}",
+                    "similarity": similarity,
+                    "method": "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback")
+                }
+            elif similarity >= 0.50:
+                score = int(70 + (similarity - 0.50) / 0.15 * 15)  # 70-85%
+                return {
+                    "score": score,
+                    "feedback": f"Comparație parțial corectă semantic (similaritate: {similarity:.0%}). {question.get('explanation', '')}",
+                    "similarity": similarity,
+                    "method": "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback")
+                }
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Error in NLP semantic similarity for comparison: {e}")
+            # Continuă cu fallback
+    
+    # PRIORITATE 2: Fallback la keyword matching
     # Verifică dacă răspunsul menționează ambele concepte
     concept1 = concepts_to_compare[0].lower()
     concept2 = concepts_to_compare[1].lower() if len(concepts_to_compare) > 1 else ""
@@ -1509,29 +1548,38 @@ def _grade_comparison(answer: str, question: Dict[str, Any]) -> Dict[str, Any]:
             found_keywords.append(keyword)
     
     found_count = len(found_keywords)
+    similarity_fallback = found_count / len(comparison_keywords) if comparison_keywords else 0.0
     
     if has_concept1 and has_concept2 and has_comparison and found_count >= min_keywords:
         score = min(100, int((found_count / len(comparison_keywords)) * 100))
         return {
             "score": score,
-            "feedback": f"Excelentă comparație! Ai comparat corect ambele concepte și ai menționat aspectele importante. {question.get('explanation', '')}"
+            "feedback": f"Excelentă comparație! Ai comparat corect ambele concepte și ai menționat aspectele importante. {question.get('explanation', '')}",
+            "similarity": similarity_fallback,
+            "method": method
         }
     elif has_concept1 and has_concept2 and found_count >= min_keywords:
         score = int((found_count / len(comparison_keywords)) * 80)
         return {
             "score": score,
-            "feedback": f"Bună comparație! Ai menționat ambele concepte și aspectele importante. {question.get('explanation', '')}"
+            "feedback": f"Bună comparație! Ai menționat ambele concepte și aspectele importante. {question.get('explanation', '')}",
+            "similarity": similarity_fallback,
+            "method": method
         }
     elif (has_concept1 or has_concept2) and found_count > 0:
         score = int((found_count / min_keywords) * 60)
         return {
             "score": score,
-            "feedback": f"Comparație incompletă. Ai menționat un concept, dar ar trebui să compari ambele: {concept1} și {concept2}. {question.get('explanation', '')}"
+            "feedback": f"Comparație incompletă. Ai menționat un concept, dar ar trebui să compari ambele: {concept1} și {concept2}. {question.get('explanation', '')}",
+            "similarity": similarity_fallback,
+            "method": method
         }
     else:
         return {
             "score": 0,
-            "feedback": f"Comparație insuficientă. Ar trebui să compari {concept1} și {concept2}, menționând cel puțin {min_keywords} aspecte. {question.get('explanation', '')}"
+            "feedback": f"Comparație insuficientă. Ar trebui să compari {concept1} și {concept2}, menționând cel puțin {min_keywords} aspecte. {question.get('explanation', '')}",
+            "similarity": 0.0,
+            "method": method
         }
 
 
@@ -1542,13 +1590,60 @@ def _grade_definition(answer: str, question: Dict[str, Any]) -> Dict[str, Any]:
     correct_keywords = [kw.lower() for kw in question.get("correct_keywords", [])]
     definition_elements = [e.lower() for e in question.get("definition_elements", [])]
     min_keywords = question.get("min_keywords", 3)
+    correct_answer = question.get("correct_answer", "")
     
     if not correct_keywords and not definition_elements:
+        method = "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback")
         return {
             "score": 0,
-            "feedback": "Eroare: Nu există criterii definite pentru această întrebare."
+            "feedback": "Eroare: Nu există criterii definite pentru această întrebare.",
+            "similarity": 0.0,
+            "method": method
         }
     
+    # PRIORITATE 1: Folosește NLP dacă este disponibil și există correct_answer
+    method = "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback (Simple Matching)")
+    if NLP_ENABLED and correct_answer and correct_answer.strip():
+        try:
+            similarity = semantic_similarity(answer_original, correct_answer)
+            logging.getLogger(__name__).info(f"NLP semantic similarity for definition: {similarity:.2f}")
+            
+            if similarity >= 0.80:
+                return {
+                    "score": 100,
+                    "feedback": f"Excelent! Răspunsul tău este semantic corect (similaritate: {similarity:.0%}). {question.get('explanation', '')}",
+                    "similarity": similarity,
+                    "method": "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback")
+                }
+            elif similarity >= 0.65:
+                score = int(85 + (similarity - 0.65) / 0.15 * 15)  # 85-100%
+                return {
+                    "score": score,
+                    "feedback": f"Bun răspuns! Exprimi corect ideea principală (similaritate: {similarity:.0%}). {question.get('explanation', '')}",
+                    "similarity": similarity,
+                    "method": "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback")
+                }
+            elif similarity >= 0.50:
+                score = int(70 + (similarity - 0.50) / 0.15 * 15)  # 70-85%
+                return {
+                    "score": score,
+                    "feedback": f"Răspuns parțial corect semantic (similaritate: {similarity:.0%}). {question.get('explanation', '')}",
+                    "similarity": similarity,
+                    "method": "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback")
+                }
+            elif similarity >= 0.40:
+                score = int(50 + (similarity - 0.40) / 0.10 * 20)  # 50-70%
+                return {
+                    "score": score,
+                    "feedback": f"Răspunsul are sens dar nu este complet (similaritate: {similarity:.0%}). {question.get('explanation', '')}",
+                    "similarity": similarity,
+                    "method": "NLP Semantic Similarity" if SEMANTIC_SIMILARITY_AVAILABLE else ("Fuzzy Matching" if NLP_AVAILABLE else "Fallback")
+                }
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Error in NLP semantic similarity for definition: {e}")
+            # Continuă cu fallback
+    
+    # PRIORITATE 2: Fallback la keyword matching
     # Normalizare
     def normalize_word(word):
         replacements = {'ă': 'a', 'â': 'a', 'î': 'i', 'ș': 's', 'ț': 't'}
@@ -1568,29 +1663,38 @@ def _grade_definition(answer: str, question: Dict[str, Any]) -> Dict[str, Any]:
             found_elements.append(element)
     
     found_count = len(found_elements)
+    similarity_fallback = found_count / len(all_elements) if all_elements else 0.0
     
     if found_count >= min_keywords:
         score = min(100, int((found_count / len(all_elements)) * 100))
         if score >= 90:
             return {
                 "score": 100,
-                "feedback": f"Definiție completă și corectă! Ai inclus toate elementele esențiale. {question.get('explanation', '')}"
+                "feedback": f"Definiție completă și corectă! Ai inclus toate elementele esențiale. {question.get('explanation', '')}",
+                "similarity": similarity_fallback,
+                "method": method
             }
         else:
             return {
                 "score": score,
-                "feedback": f"Bună definiție! Ai inclus {found_count} din {len(all_elements)} elemente esențiale. {question.get('explanation', '')}"
+                "feedback": f"Bună definiție! Ai inclus {found_count} din {len(all_elements)} elemente esențiale. {question.get('explanation', '')}",
+                "similarity": similarity_fallback,
+                "method": method
             }
     elif found_count > 0:
         score = int((found_count / min_keywords) * 70)
         return {
             "score": score,
-            "feedback": f"Definiție parțială. Ai menționat {found_count} elemente, dar ar trebui să incluzi cel puțin {min_keywords}. Elemente importante: {', '.join(all_elements[:5])}. {question.get('explanation', '')}"
+            "feedback": f"Definiție parțială. Ai menționat {found_count} elemente, dar ar trebui să incluzi cel puțin {min_keywords}. Elemente importante: {', '.join(all_elements[:5])}. {question.get('explanation', '')}",
+            "similarity": similarity_fallback,
+            "method": method
         }
     else:
         return {
             "score": 0,
-            "feedback": f"Definiție insuficientă. Ar trebui să incluzi cel puțin {min_keywords} dintre următoarele elemente: {', '.join(all_elements[:5])}. {question.get('explanation', '')}"
+            "feedback": f"Definiție insuficientă. Ar trebui să incluzi cel puțin {min_keywords} dintre următoarele elemente: {', '.join(all_elements[:5])}. {question.get('explanation', '')}",
+            "similarity": 0.0,
+            "method": method
         }
 
 

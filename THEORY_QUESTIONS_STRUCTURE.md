@@ -530,3 +530,4 @@ backend/
 
 **Notă:** Această structură permite adăugarea progresivă de teoria și întrebări, menținând flexibilitatea și extensibilitatea sistemului.
 
+

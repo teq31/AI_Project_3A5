@@ -3,6 +3,57 @@ const API = "http://127.0.0.1:8000";
 
 let currentPayload = null;
 
+async function loadReplayTheory(testId) {
+  try {
+    const resp = await fetch(`api/get_test_payload.php?id=${encodeURIComponent(testId)}`);
+    if (!resp.ok) {
+      alert('Nu s-a putut încărca testul salvat.');
+      return;
+    }
+    const data = await resp.json();
+    if (!data.payload) {
+      alert('Acest test vechi nu are date complete și nu poate fi reluat.');
+      return;
+    }
+
+    currentPayload = { question: data.payload };
+
+    displayQuestion(data.payload);
+
+    const solutionEl = document.getElementById('solution');
+    if (solutionEl) {
+      const q = data.payload;
+      let solutionText = '';
+      if (q.explanation) solutionText += `Explicație: ${q.explanation}\n\n`;
+      if (q.correct_answer) solutionText += `Răspuns corect: ${q.correct_answer}\n\n`;
+      if (q.correct_keywords) solutionText += `Cuvinte cheie: ${q.correct_keywords.join(', ')}\n\n`;
+      if (q.theory_reference && q.theory_reference.definition) {
+        solutionText += `Definiție: ${q.theory_reference.definition}\n`;
+      }
+      solutionEl.textContent = solutionText || 'Soluția nu este disponibilă';
+    }
+
+    const answerEl = document.getElementById('answer');
+    if (answerEl) answerEl.value = '';
+    const resultEl = document.getElementById('result');
+    if (resultEl) resultEl.innerHTML = '';
+
+    const container = document.getElementById('questionContainer');
+    if (container) {
+      const info = document.createElement('div');
+      info.style.marginBottom = '8px';
+      info.style.fontSize = '0.9em';
+      info.style.opacity = '0.85';
+      info.style.color = '#74b9ff';
+      info.textContent = `Reiei testul dat pe ${new Date(data.created_at).toLocaleString()} (scor inițial: ${data.score}%)`;
+      container.parentNode.insertBefore(info, container);
+    }
+  } catch (err) {
+    console.error('Eroare la încărcarea testului salvat:', err);
+    alert('Eroare la încărcarea testului salvat: ' + (err.message || err));
+  }
+}
+
 // Load available topics on page load
 async function loadTopics() {
   try {
@@ -156,6 +207,16 @@ async function gradeAnswer() {
     return;
   }
   
+  // Show loading state
+  const resultEl = document.getElementById('result');
+  if (resultEl) {
+    resultEl.innerHTML = `
+      <div style="margin-top: 16px; padding: 16px; border-radius: 10px; background: #edf2ff; color: #434190; text-align: center;">
+        ⏳ Se evaluează răspunsul...
+      </div>
+    `;
+  }
+  
   try {
     const payload = currentPayload.question || currentPayload;
     const body = JSON.stringify({ payload: payload, answer: answer });
@@ -174,6 +235,13 @@ async function gradeAnswer() {
     displayResult(result);
   } catch (error) {
     console.error('Error grading answer:', error);
+    if (resultEl) {
+      resultEl.innerHTML = `
+        <div style="margin-top: 16px; padding: 16px; border-radius: 10px; background: #fed7d7; color: #742a2a;">
+          <strong>Eroare:</strong> ${error.message}
+        </div>
+      `;
+    }
     alert('Eroare la evaluarea răspunsului: ' + error.message);
   }
 }
@@ -232,6 +300,10 @@ window.checkNLPStatus = async function() {
     const iconEl = document.getElementById('nlpStatusIcon');
     const textEl = document.getElementById('nlpStatusText');
     
+    if (!statusEl || !iconEl || !textEl) {
+      return; // Elementele nu există pe pagină
+    }
+    
     // Verifică dacă NLP este activat (status enabled sau dacă avem semantic_similarity_available sau nlp_available)
     const nlpIsEnabled = data.status === 'enabled' || data.semantic_similarity_available || data.nlp_available;
     
@@ -265,13 +337,131 @@ window.checkNLPStatus = async function() {
     const statusEl = document.getElementById('nlpStatus');
     const iconEl = document.getElementById('nlpStatusIcon');
     const textEl = document.getElementById('nlpStatusText');
-    statusEl.style.background = '#fed7d7';
-    statusEl.style.borderColor = '#fc8181';
-    iconEl.textContent = '❌';
-    textEl.innerHTML = `<strong>Eroare:</strong> Nu s-a putut verifica statusul NLP`;
+    if (statusEl && iconEl && textEl) {
+      statusEl.style.background = '#fed7d7';
+      statusEl.style.borderColor = '#fc8181';
+      iconEl.textContent = '❌';
+      textEl.innerHTML = `<strong>Eroare:</strong> Nu s-a putut verifica statusul NLP`;
+    }
     console.error('Error checking NLP status:', error);
   }
 };
+
+// Funcție pentru încărcarea răspunsului din document
+async function loadAnswerFromFile() {
+  const fileInput = document.getElementById('answerFile');
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    alert('Te rog selectează un fișier!');
+    return;
+  }
+  
+  try {
+    let answer = '';
+    
+    if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+      const answers = await processTextFile(file);
+      answer = answers.length > 0 ? answers[0] : '';
+    } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+      const answers = await processPDFFile(file);
+      answer = answers.length > 0 ? answers[0] : '';
+    } else {
+      alert('Format de fișier nesuportat! Te rog folosește .txt sau .pdf');
+      return;
+    }
+    
+    if (!answer) {
+      alert('Nu s-a găsit niciun răspuns în document!');
+      return;
+    }
+    
+    // Actualizează input-ul cu răspunsul
+    const answerInput = document.getElementById('answer');
+    if (answerInput) {
+      answerInput.value = answer;
+      alert('Răspunsul a fost încărcat cu succes!');
+    }
+    
+    // Resetează input-ul de fișier
+    fileInput.value = '';
+    
+  } catch (error) {
+    console.error('Eroare la procesarea fișierului:', error);
+    alert('Eroare la procesarea fișierului: ' + error.message);
+  }
+}
+
+// Procesare fișier text
+function processTextFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result;
+        // Împarte pe linii și filtrează liniile goale
+        const answers = text.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0);
+        resolve(answers);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = () => reject(new Error('Eroare la citirea fișierului'));
+    reader.readAsText(file);
+  });
+}
+
+// Procesare fișier PDF
+async function processPDFFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        const arrayBuffer = e.target.result;
+        
+        // Verifică dacă PDF.js este disponibil
+        const pdfjs = window.pdfjsLib || window.pdfjs;
+        if (!pdfjs) {
+          reject(new Error('PDF.js nu este încărcat! Te rog reîncarcă pagina.'));
+          return;
+        }
+        
+        // Configurează PDF.js worker
+        pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        
+        const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        
+        let fullText = '';
+        
+        // Citește toate paginile
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join('\n');
+          fullText += pageText + '\n';
+        }
+        
+        // Împarte pe linii și filtrează liniile goale
+        const answers = fullText.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0);
+        
+        resolve(answers);
+      } catch (error) {
+        reject(new Error('Eroare la procesarea PDF: ' + error.message));
+      }
+    };
+    
+    reader.onerror = () => reject(new Error('Eroare la citirea fișierului PDF'));
+    reader.readAsArrayBuffer(file);
+  });
+}
 
 // Event listeners
 document.getElementById('genBtn').addEventListener('click', loadQuestion);
@@ -279,5 +469,7 @@ document.getElementById('gradeBtn').addEventListener('click', gradeAnswer);
 
 // Load topics and check NLP status on page load
 loadTopics();
-checkNLPStatus();
+if (typeof checkNLPStatus === 'function') {
+  checkNLPStatus();
+}
 

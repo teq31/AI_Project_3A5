@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="ro">
 <head>
@@ -170,13 +177,31 @@
     <!-- Quiz Section -->
     <div id="quizSection" class="quiz-container">
       <div class="card">
-        <h3 id="quizProgress">Întrebarea 1 din 5</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 id="quizProgress">Întrebarea 1 din 5</h3>
+          <div id="quizTimer" style="font-size: 1.2rem; font-weight: 600; color: #667eea; padding: 8px 16px; background: #edf2ff; border-radius: 8px;">⏱️ 0:00</div>
+        </div>
         
         <div id="currentQuestion"></div>
         
         <div class="row">
           <input id="quizAnswer" placeholder="Răspunsul tău">
           <button onclick="submitAnswer()">Trimite răspuns</button>
+        </div>
+        
+        <div style="margin-top: 12px; padding: 12px; background: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <label for="answerFile" style="display: block; margin-bottom: 8px; font-weight: 600; color: #4a5568;">
+            📄 Sau încarcă un document cu răspunsurile:
+          </label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="file" id="answerFile" accept=".txt,.pdf" style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px;">
+            <button onclick="loadAnswersFromFile()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+              Încarcă răspunsuri
+            </button>
+          </div>
+          <small style="display: block; margin-top: 6px; color: #718096;">
+            Acceptă fișiere .txt sau .pdf. Răspunsurile trebuie să fie separate pe linii (fiecare linie = un răspuns).
+          </small>
         </div>
         
         <div id="questionFeedback"></div>
@@ -225,6 +250,7 @@
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="js/quiz.js?v=2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="js/quiz.js?v=6"></script>
 </body>
 </html>
