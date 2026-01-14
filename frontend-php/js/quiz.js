@@ -170,6 +170,16 @@ async function generateTheoryQuestion(topicId = null, questionType = null) {
   
   const response = await fetch(url);
   const data = await response.json();
+  
+  // Setează soluția doar cu explicația (fără correct_answer)
+  const question = data.question || data;
+  if (question) {
+    // Pentru toate tipurile de întrebări, soluția este doar explicația
+    question.solution = {
+      explanation: question.explanation || ''
+    };
+  }
+  
   return data;
 }
 

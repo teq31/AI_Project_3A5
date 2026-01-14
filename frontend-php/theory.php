@@ -13,6 +13,17 @@
   <div class="container">
     <h1>SmarTest — Întrebări Teorie</h1>
 
+    <!-- NLP Status Indicator -->
+    <div id="nlpStatus" style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: #f7fafc; border: 2px solid #e2e8f0;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span id="nlpStatusIcon">⏳</span>
+          <span id="nlpStatusText">Verificare status NLP...</span>
+        </div>
+        <button id="refreshNLPStatus" onclick="checkNLPStatus()" style="padding: 4px 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">🔄 Reîncarcă</button>
+      </div>
+    </div>
+
     <div class="card">
       <h3>Generator întrebare teorie</h3>
       <div class="grid">

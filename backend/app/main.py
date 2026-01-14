@@ -27,6 +27,51 @@ class AnswerPayload(BaseModel):
 def health():
     return {"status": "ok"}
 
+@app.get("/nlp/status")
+def nlp_status():
+    """Verifică statusul NLP"""
+    try:
+        from app.nlp_utils import (
+            SEMANTIC_SIMILARITY_AVAILABLE, NLP_AVAILABLE,
+            get_semantic_model, semantic_similarity
+        )
+        
+        # Forțează încărcarea modelului pentru a verifica dacă funcționează
+        model = get_semantic_model()
+        model_loaded = model is not None
+        
+        # Dacă modelul nu este încărcat dar este disponibil, încearcă să-l încarce acum
+        if not model_loaded and SEMANTIC_SIMILARITY_AVAILABLE:
+            try:
+                # Forțează încărcarea prin testarea unei similarități
+                test_result = semantic_similarity("test", "test")
+                # După test, modelul ar trebui să fie încărcat
+                model = get_semantic_model()
+                model_loaded = model is not None
+            except Exception as e:
+                test_result = f"Error loading model: {str(e)}"
+        else:
+            # Test semantic similarity dacă modelul este disponibil
+            test_result = None
+            if SEMANTIC_SIMILARITY_AVAILABLE or NLP_AVAILABLE:
+                try:
+                    test_result = semantic_similarity("test", "test")
+                except Exception as e:
+                    test_result = f"Error: {str(e)}"
+        
+        return {
+            "semantic_similarity_available": SEMANTIC_SIMILARITY_AVAILABLE,
+            "nlp_available": NLP_AVAILABLE,
+            "model_loaded": model_loaded,
+            "test_similarity": test_result,
+            "status": "enabled" if (SEMANTIC_SIMILARITY_AVAILABLE or NLP_AVAILABLE) else "disabled"
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "status": "error"
+        }
+
 @app.get("/nash/generate")
 def generate(rows: int = 3, cols: int = 3, ensure: str = "atleast_one", seed: int | None = None):
     """
@@ -122,7 +167,17 @@ def generate_theory(topic_id: str | None = None,
     theory_file: Numele fișierului cu teoria (default: "example_theory.json")
     seed: Seed pentru reproducibilitate
     """
-    return theory_q.build_question_payload(topic_id, question_type, theory_file, seed)
+    try:
+        return theory_q.build_question_payload(topic_id, question_type, theory_file, seed)
+    except FileNotFoundError as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Error generating question: {str(e)}")
 
 @app.post("/theory/grade")
 def grade_theory(ap: AnswerPayload):

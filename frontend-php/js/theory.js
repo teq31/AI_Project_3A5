@@ -52,21 +52,22 @@ async function loadQuestion() {
     if (data.question || data) {
       const q = data.question || data;
       let solutionText = '';
-      if (q.explanation) {
-        solutionText += `Explicație: ${q.explanation}\n\n`;
-      }
-      if (q.correct_answer) {
-        solutionText += `Răspuns corect: ${q.correct_answer}\n\n`;
-      }
-      if (q.correct_keywords) {
-        solutionText += `Cuvinte cheie: ${q.correct_keywords.join(', ')}\n\n`;
-      }
-      if (q.theory_reference) {
-        solutionText += `Referință teoretică:\n`;
-        if (q.theory_reference.definition) {
-          solutionText += `Definiție: ${q.theory_reference.definition}\n`;
+      
+      // Pentru multiple choice, nu afișăm răspunsul corect, doar explicația
+      if (q.theory_type === 'multiple_choice') {
+        if (q.explanation) {
+          solutionText += `Explicație: ${q.explanation}\n\n`;
         }
+      } else {
+        // Pentru alte tipuri de întrebări, afișăm explicația
+        if (q.explanation) {
+          solutionText += `Explicație: ${q.explanation}\n\n`;
+        }
+        // Nu mai afișăm correct_answer pentru niciun tip de întrebare
+        // (utilizatorul trebuie să înțeleagă din explicație)
       }
+      
+      // Nu mai afișăm correct_keywords și theory_reference pentru a simplifica
       solutionEl.textContent = solutionText || 'Soluția nu este disponibilă';
     }
     
@@ -188,18 +189,95 @@ function displayResult(result) {
     bgColor = '#feebc8'; // galben
   }
   
+  // Extrage informații NLP din feedback sau din result
+  let nlpInfo = '';
+  if (result.similarity !== undefined) {
+    const similarityPercent = Math.round(result.similarity * 100);
+    nlpInfo = `<div style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 6px; font-size: 0.9rem;">
+      <strong>🔍 Analiză NLP:</strong> Similaritate semantică: <strong>${similarityPercent}%</strong>
+      ${result.method ? ` | Metodă: ${result.method}` : ''}
+    </div>`;
+  }
+  
+  // Verifică dacă feedback-ul conține informații despre similaritate
+  const feedback = result.feedback || '';
+  if (feedback.includes('Similaritate') || feedback.includes('similaritate')) {
+    // Informațiile sunt deja în feedback
+  } else if (result.similarity === undefined && feedback) {
+    // Nu avem informații NLP explicite, dar putem deduce din feedback
+  }
+  
   resultEl.innerHTML = `
     <div style="margin-top: 16px; padding: 16px; border-radius: 10px; background: ${bgColor};">
       <strong>Scor: ${score}%</strong><br>
-      ${result.feedback || 'Fără feedback'}
+      ${feedback}
+      ${nlpInfo}
     </div>
   `;
 }
+
+// Check NLP status on page load (exported for button)
+window.checkNLPStatus = async function() {
+  try {
+    const url = USE_PROXY
+      ? 'api/proxy_nlp_status.php'
+      : `${API}/nlp/status`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    console.log('NLP Status Data:', data); // Debug
+    
+    const statusEl = document.getElementById('nlpStatus');
+    const iconEl = document.getElementById('nlpStatusIcon');
+    const textEl = document.getElementById('nlpStatusText');
+    
+    // Verifică dacă NLP este activat (status enabled sau dacă avem semantic_similarity_available sau nlp_available)
+    const nlpIsEnabled = data.status === 'enabled' || data.semantic_similarity_available || data.nlp_available;
+    
+    console.log('NLP Enabled:', nlpIsEnabled, 'Semantic:', data.semantic_similarity_available, 'NLP:', data.nlp_available); // Debug
+    
+    if (nlpIsEnabled) {
+      if (data.model_loaded) {
+        statusEl.style.background = '#c6f6d5';
+        statusEl.style.borderColor = '#68d391';
+        iconEl.textContent = '✅';
+        textEl.innerHTML = `<strong>NLP Activ:</strong> Similaritate semantică ${data.semantic_similarity_available ? 'completă' : 'parțială'} | Model: <strong style="color: #22543d;">Încărcat</strong>`;
+      } else {
+        // Model disponibil dar nu încărcat (se va încărca la prima utilizare)
+        statusEl.style.background = '#c6f6d5';
+        statusEl.style.borderColor = '#68d391';
+        iconEl.textContent = '✅';
+        textEl.innerHTML = `<strong>NLP Activ:</strong> Similaritate semantică ${data.semantic_similarity_available ? 'completă' : 'parțială'} | Model: <strong style="color: #22543d;">Se va încărca la prima utilizare</strong>`;
+      }
+    } else if (data.status === 'disabled' || (!data.semantic_similarity_available && !data.nlp_available)) {
+      statusEl.style.background = '#fed7d7';
+      statusEl.style.borderColor = '#fc8181';
+      iconEl.textContent = '⚠️';
+      textEl.innerHTML = `<strong>NLP Dezactivat:</strong> Folosește metode fallback (matching simplu)`;
+    } else {
+      statusEl.style.background = '#feebc8';
+      statusEl.style.borderColor = '#f6ad55';
+      iconEl.textContent = '⚠️';
+      textEl.innerHTML = `<strong>NLP Parțial:</strong> ${data.error || 'Status necunoscut'}`;
+    }
+  } catch (error) {
+    const statusEl = document.getElementById('nlpStatus');
+    const iconEl = document.getElementById('nlpStatusIcon');
+    const textEl = document.getElementById('nlpStatusText');
+    statusEl.style.background = '#fed7d7';
+    statusEl.style.borderColor = '#fc8181';
+    iconEl.textContent = '❌';
+    textEl.innerHTML = `<strong>Eroare:</strong> Nu s-a putut verifica statusul NLP`;
+    console.error('Error checking NLP status:', error);
+  }
+};
 
 // Event listeners
 document.getElementById('genBtn').addEventListener('click', loadQuestion);
 document.getElementById('gradeBtn').addEventListener('click', gradeAnswer);
 
-// Load topics on page load
+// Load topics and check NLP status on page load
 loadTopics();
+checkNLPStatus();
 

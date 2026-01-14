@@ -1,9 +1,7 @@
 <?php
 header("Content-Type: application/json");
 
-$theory_file = isset($_GET['theory_file']) ? $_GET['theory_file'] : 'example_theory.json';
-
-$url = "http://127.0.0.1:8000/theory/topics?theory_file=" . urlencode($theory_file);
+$url = "http://127.0.0.1:8000/nlp/status";
 
 // Use cURL for better error handling
 $ch = curl_init();
@@ -21,7 +19,10 @@ curl_close($ch);
 if ($error) {
     echo json_encode([
         "error" => "Connection error: " . $error . ". Make sure the backend server is running on port 8000.",
-        "topics" => []
+        "status" => "error",
+        "semantic_similarity_available" => false,
+        "nlp_available" => false,
+        "model_loaded" => false
     ]);
     http_response_code(500);
     exit;
@@ -39,7 +40,10 @@ if ($httpCode !== 200) {
     
     echo json_encode([
         "error" => $errorMsg,
-        "topics" => []
+        "status" => "error",
+        "semantic_similarity_available" => false,
+        "nlp_available" => false,
+        "model_loaded" => false
     ]);
     http_response_code($httpCode);
     exit;
@@ -50,7 +54,10 @@ $responseData = json_decode($response, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
     echo json_encode([
         "error" => "Invalid JSON response from backend: " . json_last_error_msg(),
-        "topics" => []
+        "status" => "error",
+        "semantic_similarity_available" => false,
+        "nlp_available" => false,
+        "model_loaded" => false
     ]);
     http_response_code(500);
     exit;
