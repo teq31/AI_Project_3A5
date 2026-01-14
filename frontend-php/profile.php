@@ -106,9 +106,46 @@ if ($total_tests == 0) {
 }
 
 // --- 4. Istoric ---
-$stmt = $pdo->prepare("SELECT topic, score, feedback, created_at FROM results WHERE user_id = ? ORDER BY created_at DESC LIMIT 5");
+$stmt = $pdo->prepare("SELECT id, topic, score, feedback, created_at FROM results WHERE user_id = ? ORDER BY created_at DESC LIMIT 5");
 $stmt->execute([$user_id]);
 $history = $stmt->fetchAll();
+
+// --- 5. Quiz-urile mele (lista completa pentru reluare) ---
+$quizStmt = $pdo->prepare("SELECT id, score, question_count, time_spent, created_at FROM quizzes WHERE user_id = ? ORDER BY created_at DESC");
+$quizStmt->execute([$user_id]);
+$quizzes = $quizStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// --- 6. Statistici avansate pentru quiz-uri ---
+$statsStmt = $pdo->prepare("
+    SELECT 
+        AVG(time_spent) as avg_time,
+        MIN(time_spent) as min_time,
+        MAX(time_spent) as max_time,
+        AVG(score) as avg_score_quiz,
+        AVG(time_spent * 1.0 / question_count) as avg_time_per_question
+    FROM quizzes 
+    WHERE user_id = ? AND time_spent > 0
+");
+$statsStmt->execute([$user_id]);
+$quizStats = $statsStmt->fetch();
+
+// Calculăm evoluția scorurilor (ultimele 10 quiz-uri)
+$evolutionStmt = $pdo->prepare("
+    SELECT score, created_at 
+    FROM quizzes 
+    WHERE user_id = ? 
+    ORDER BY created_at DESC 
+    LIMIT 10
+");
+$evolutionStmt->execute([$user_id]);
+$scoreEvolution = array_reverse($evolutionStmt->fetchAll());
+
+$evolutionLabels = [];
+$evolutionScores = [];
+foreach ($scoreEvolution as $ev) {
+    $evolutionLabels[] = date('d.m', strtotime($ev['created_at']));
+    $evolutionScores[] = round($ev['score'], 1);
+}
 ?>
 
 <!DOCTYPE html>
@@ -194,6 +231,48 @@ $history = $stmt->fetchAll();
         <?php endif; ?>
     </div>
 
+    <?php if(count($scoreEvolution) > 1): ?>
+    <div class="card">
+        <h3>📈 Evoluția Scorurilor (Ultimele 10 Quiz-uri)</h3>
+        <canvas id="evolutionChart" style="max-height: 300px;"></canvas>
+    </div>
+    <?php endif; ?>
+
+    <?php if($quizStats && $quizStats['avg_time'] > 0): ?>
+    <div class="card">
+        <h3>⚡ Statistici Avansate</h3>
+        <div class="dashboard-grid">
+            <div style="text-align: center; padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 12px;">
+                <div style="font-size: 2em; font-weight: bold; color: #667eea;">
+                    <?= gmdate("i:s", intval($quizStats['avg_time_per_question'] ?? 0)) ?>
+                </div>
+                <div style="color: #4a5568; margin-top: 8px;">Timp mediu / întrebare</div>
+            </div>
+            <div style="text-align: center; padding: 20px; background: rgba(72, 187, 120, 0.1); border-radius: 12px;">
+                <div style="font-size: 2em; font-weight: bold; color: #48bb78;">
+                    <?= gmdate("i:s", intval($quizStats['min_time'] ?? 0)) ?>
+                </div>
+                <div style="color: #4a5568; margin-top: 8px;">Cel mai rapid quiz</div>
+            </div>
+        </div>
+        <div style="margin-top: 16px; padding: 16px; background: rgba(247, 250, 252, 0.6); border-radius: 8px;">
+            <p style="margin: 0; opacity: 0.85;"><strong>💡 Insight:</strong> 
+            <?php 
+            $avgTime = intval($quizStats['avg_time'] ?? 0);
+            $avgTimePerQ = intval($quizStats['avg_time_per_question'] ?? 0);
+            if ($avgTimePerQ < 30) {
+                echo "Răspunzi foarte rapid la întrebări! Ia-ți timp pentru o analiză mai atentă.";
+            } elseif ($avgTimePerQ > 120) {
+                echo "Îți iei timp să analizezi fiecare întrebare - excelent pentru învățare profundă!";
+            } else {
+                echo "Ai un ritm echilibrat de răspuns la întrebări.";
+            }
+            ?>
+            </p>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="card">
         <h3>Ultimele 5 Rezultate</h3>
         <?php if(count($history) > 0): ?>
@@ -216,6 +295,47 @@ $history = $stmt->fetchAll();
         </table>
         <?php else: ?>
             <p>Fără istoric.</p>
+        <?php endif; ?>
+    </div>
+
+    <div class="card">
+        <h3>Quiz-urile mele</h3>
+        <?php if (!empty($quizzes)): ?>
+        <table>
+            <thead>
+                <tr>
+                    <th>Quiz</th>
+                    <th>Data</th>
+                    <th>Întrebări</th>
+                    <th>Timp</th>
+                    <th>Scor</th>
+                    <th>Acțiune</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php $quizIndex = 1; ?>
+                <?php foreach ($quizzes as $q): ?>
+                    <?php 
+                        $cls = ($q['score']>=80)?'score-high':(($q['score']>=50)?'score-med':'score-low');
+                        $timeSpent = intval($q['time_spent'] ?? 0);
+                        $timeStr = $timeSpent > 0 ? gmdate("i:s", $timeSpent) : '-';
+                    ?>
+                    <tr>
+                        <td>Quiz nr. <?= $quizIndex++ ?></td>
+                        <td><?= date('d.m.Y H:i', strtotime($q['created_at'])) ?></td>
+                        <td><?= (int)$q['question_count'] ?></td>
+                        <td><?= $timeStr ?></td>
+                        <td class="<?= $cls ?>"><b><?= $q['score'] ?>%</b></td>
+                        <td style="display: flex; gap: 8px; align-items: center;">
+                            <a href="quiz.php?replay_quiz=<?= (int)$q['id'] ?>" style="color:#74b9ff; text-decoration:none; font-weight:bold;">Reia</a>
+                            <button onclick="deleteQuiz(<?= (int)$q['id'] ?>)" style="padding: 2px 6px; font-size: 0.75rem; background: #fc8181; border-radius: 4px; cursor: pointer;">🗑️</button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php else: ?>
+            <p>Nu ai încă niciun quiz salvat. Creează un quiz nou, iar acesta va apărea aici pentru a putea fi reluat.</p>
         <?php endif; ?>
     </div>
 </div>
@@ -243,6 +363,76 @@ $history = $stmt->fetchAll();
         }
     });
     <?php endif; ?>
+
+    <?php if(count($scoreEvolution) > 1): ?>
+    const ctxEvolution = document.getElementById('evolutionChart').getContext('2d');
+    new Chart(ctxEvolution, {
+        type: 'line',
+        data: {
+            labels: <?= json_encode($evolutionLabels) ?>,
+            datasets: [{
+                label: 'Scor (%)',
+                data: <?= json_encode($evolutionScores) ?>,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: '#667eea',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    max: 100, 
+                    ticks: { color: '#4a5568' }, 
+                    grid: { color: 'rgba(0,0,0,0.1)' } 
+                },
+                x: { ticks: { color: '#4a5568' }, grid: { display: false } }
+            },
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Scor: ' + context.parsed.y + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    <?php endif; ?>
+
+    async function deleteQuiz(quizId) {
+        if (!confirm('Sigur vrei să ștergi acest quiz? Această acțiune nu poate fi anulată.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('api/delete_quiz.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: quizId })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert('Quiz șters cu succes!');
+                location.reload();
+            } else {
+                alert('Eroare la ștergere: ' + (result.error || 'Eroare necunoscută'));
+            }
+        } catch (error) {
+            console.error('Eroare:', error);
+            alert('Eroare la ștergerea quiz-ului');
+        }
+    }
 </script>
 </body>
 </html>

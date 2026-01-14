@@ -88,6 +88,17 @@ if (!isset($_SESSION['user_id'])) {
   </div>
 
   <script src="js/theory.js"></script>
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const replayId = params.get('replay');
+      if (replayId) {
+        window.addEventListener('load', function() {
+          loadReplayTheory(replayId);
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
 

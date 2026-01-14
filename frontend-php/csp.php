@@ -144,6 +144,17 @@ if (!isset($_SESSION['user_id'])) {
   </div>
 
   <script src="js/csp.js?v=2"></script>
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const replayId = params.get('replay');
+      if (replayId) {
+        window.addEventListener('load', function() {
+          loadReplayCsp(replayId);
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
 

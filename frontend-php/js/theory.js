@@ -3,6 +3,57 @@ const API = "http://127.0.0.1:8000";
 
 let currentPayload = null;
 
+async function loadReplayTheory(testId) {
+  try {
+    const resp = await fetch(`api/get_test_payload.php?id=${encodeURIComponent(testId)}`);
+    if (!resp.ok) {
+      alert('Nu s-a putut încărca testul salvat.');
+      return;
+    }
+    const data = await resp.json();
+    if (!data.payload) {
+      alert('Acest test vechi nu are date complete și nu poate fi reluat.');
+      return;
+    }
+
+    currentPayload = { question: data.payload };
+
+    displayQuestion(data.payload);
+
+    const solutionEl = document.getElementById('solution');
+    if (solutionEl) {
+      const q = data.payload;
+      let solutionText = '';
+      if (q.explanation) solutionText += `Explicație: ${q.explanation}\n\n`;
+      if (q.correct_answer) solutionText += `Răspuns corect: ${q.correct_answer}\n\n`;
+      if (q.correct_keywords) solutionText += `Cuvinte cheie: ${q.correct_keywords.join(', ')}\n\n`;
+      if (q.theory_reference && q.theory_reference.definition) {
+        solutionText += `Definiție: ${q.theory_reference.definition}\n`;
+      }
+      solutionEl.textContent = solutionText || 'Soluția nu este disponibilă';
+    }
+
+    const answerEl = document.getElementById('answer');
+    if (answerEl) answerEl.value = '';
+    const resultEl = document.getElementById('result');
+    if (resultEl) resultEl.innerHTML = '';
+
+    const container = document.getElementById('questionContainer');
+    if (container) {
+      const info = document.createElement('div');
+      info.style.marginBottom = '8px';
+      info.style.fontSize = '0.9em';
+      info.style.opacity = '0.85';
+      info.style.color = '#74b9ff';
+      info.textContent = `Reiei testul dat pe ${new Date(data.created_at).toLocaleString()} (scor inițial: ${data.score}%)`;
+      container.parentNode.insertBefore(info, container);
+    }
+  } catch (err) {
+    console.error('Eroare la încărcarea testului salvat:', err);
+    alert('Eroare la încărcarea testului salvat: ' + (err.message || err));
+  }
+}
+
 // Load available topics on page load
 async function loadTopics() {
   try {

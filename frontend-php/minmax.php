@@ -17,6 +17,17 @@ if (!isset($_SESSION['user_id'])) {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const replayId = params.get('replay');
+      if (replayId) {
+        window.addEventListener('load', function() {
+          loadReplayMinmax(replayId);
+        });
+      }
+    })();
+  </script>
   <a href="index.php" class="back-home">⬅️ Înapoi la meniu</a>
   <div class="container">
     <h1>SmarTest — Problema 4: MinMax cu optimizare Alpha-Beta</h1>

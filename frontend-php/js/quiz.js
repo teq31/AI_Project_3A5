@@ -7,12 +7,26 @@ let currentQuestionIndex = 0;
 let quizAnswers = [];
 let quizResults = [];
 let quizFinished = false;
+let currentQuizId = null;
+let isReplayMode = false;
+let quizStartTime = null;
+let quizTimerInterval = null;
+let timeSpentSeconds = 0;
 
 // Initialize
 function init() {
-  addQuestion();
-  addQuestion();
-  addQuestion();
+  const params = new URLSearchParams(window.location.search);
+  const replayQuizId = params.get('replay_quiz');
+
+  if (replayQuizId) {
+    // Mod replay: nu generăm un quiz nou, ci îl încărcăm pe cel salvat
+    loadQuizReplay(replayQuizId);
+  } else {
+    // Comportament normal: propunem 3 întrebări default în configurator
+    addQuestion();
+    addQuestion();
+    addQuestion();
+  }
 }
 
 function addQuestion() {
@@ -72,6 +86,12 @@ async function startQuiz() {
   quizAnswers = [];
   quizResults = [];
   quizFinished = false;
+  currentQuizId = null;
+  isReplayMode = false;
+  timeSpentSeconds = 0;
+  
+  // Start timer
+  startQuizTimer();
 
   // Generate questions
   try {
@@ -217,8 +237,9 @@ function displayQuestion(index) {
       <p><small>Răspunde cu numele optimizării (ex: Forward Checking) sau numărul opțiunii (1-4)</small></p>
     `;
     } else if (question.type === 'theory') {
+    // Întrebarea de teorie poate avea structura în question.question sau direct în question
     const theoryQuestion = question.question || question;
-    const theoryType = theoryQuestion.theory_type;
+    const theoryType = theoryQuestion.theory_type || '';
     
     let html = `<h4>Întrebare Teorie: ${theoryQuestion.topic_name || 'Teorie'}</h4>`;
     html += `<p style="font-size: 1.1rem; margin: 16px 0; font-weight: 500;">${theoryQuestion.question_text || ''}</p>`;
@@ -227,13 +248,25 @@ function displayQuestion(index) {
       const options = theoryQuestion.options || [];
       html += '<div style="margin: 16px 0;">';
       options.forEach((opt, idx) => {
-        html += `<label style="display: block; padding: 12px; margin: 8px 0; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer;">
+        html += `<label style="display: block; padding: 12px; margin: 8px 0; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
           <input type="radio" name="theory_option_${index}" value="${idx + 1}" style="margin-right: 8px;">
           ${idx + 1}. ${opt}
         </label>`;
       });
       html += '</div>';
       html += '<p><small>Răspunde cu numărul opțiunii (1-4) sau textul opțiunii</small></p>';
+      
+      // Adaugă event listener pentru a actualiza input-ul când se selectează o opțiune
+      setTimeout(() => {
+        document.querySelectorAll(`input[name="theory_option_${index}"]`).forEach(radio => {
+          radio.addEventListener('change', (e) => {
+            if (e.target.checked) {
+              const answerInput = document.getElementById('quizAnswer');
+              if (answerInput) answerInput.value = e.target.value;
+            }
+          });
+        });
+      }, 100);
     } else if (theoryType === 'true_false') {
       html += '<p><small>Răspunde cu "Adevărat"/"True" sau "Fals"/"False" (acceptă variante: "Raspunsul este Fals", "Este Adevărat", etc.)</small></p>';
     } else if (theoryType === 'fill_blank') {
@@ -843,6 +876,31 @@ async function finishQuiz() {
   const averageScore = quizQuestions.length > 0 
     ? (totalScore / quizQuestions.length).toFixed(2)
     : 0;
+
+  // Salvăm quiz-ul în backend pentru a putea fi reluat ulterior
+  try {
+    const body = JSON.stringify({
+      score: parseFloat(averageScore),
+      question_count: quizQuestions.length,
+      time_spent: timeSpentSeconds,
+      config: quizConfig,
+      questions: quizQuestions,
+    });
+    const resp = await fetch('api/save_quiz_result.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      currentQuizId = data.id;
+    }
+  } catch (e) {
+    console.error('Eroare la salvarea quiz-ului:', e);
+  }
+  
+  // Oprește cronometrul
+  stopQuizTimer();
   
   // Display results
   document.getElementById('quizSection').classList.remove('active');
@@ -851,6 +909,7 @@ async function finishQuiz() {
   document.getElementById('quizScore').innerHTML = `
     <h2>Scor final: ${averageScore}%</h2>
     <p>Ai răspuns la ${quizQuestions.length} întrebări.</p>
+    ${currentQuizId ? `<p style="margin-top:8px;font-size:0.9rem;color:#4a5568;">Acest quiz a fost salvat ca <strong>Test nr. ${currentQuizId}</strong> și poate fi reluat din profil.</p>` : ''}
   `;
   
   let detailsHTML = '<h4>Detalii pe întrebări:</h4>';
@@ -1391,9 +1450,122 @@ function formatTreeForPDF(node, prefix = '', isLast = true) {
   return result;
 }
 
+// Încarcă un quiz salvat pentru rejucare (din profil)
+async function loadQuizReplay(quizId) {
+  try {
+    const resp = await fetch(`api/get_quiz_result.php?id=${encodeURIComponent(quizId)}`);
+    if (!resp.ok) {
+      alert('Nu am putut încărca quiz-ul salvat. Te rog verifică conexiunea.');
+      console.error('Nu am putut încărca quiz-ul salvat');
+      return;
+    }
+    const data = await resp.json();
+    if (!data || !data.payload) {
+      alert('Date de quiz invalide. Te rog încearcă din nou.');
+      console.error('Date de quiz invalide sau lipsă payload');
+      return;
+    }
+
+    // Configurăm starea pentru replay - EXACT ca pentru un quiz nou
+    isReplayMode = true;
+    currentQuizId = null; // Nu salvăm peste quiz-ul existent
+    quizConfig = Array.isArray(data.payload.config) ? data.payload.config : [];
+    
+    // Încărcăm întrebările și resetăm complet răspunsurile și rezultatele
+    quizQuestions = Array.isArray(data.payload.questions) ? data.payload.questions.map(q => {
+      return {
+        ...q,
+        userAnswer: '',      // Resetează răspunsul utilizatorului
+        submitted: false,    // Resetează status de submitare
+        result: null         // Resetează rezultatul evaluării
+      };
+    }) : [];
+    
+    // Inițializăm array-ul de răspunsuri gol
+    quizAnswers = new Array(quizQuestions.length).fill('');
+    quizResults = [];
+    currentQuestionIndex = 0;
+    quizFinished = false;
+    timeSpentSeconds = 0;
+    
+    // Start timer pentru replay
+    startQuizTimer();
+
+    // Ascundem zona de configurare și rezultate, arătăm quiz-ul
+    const setupSection = document.getElementById('setupSection');
+    const quizSection = document.getElementById('quizSection');
+    const resultsSection = document.getElementById('resultsSection');
+    if (setupSection) setupSection.classList.remove('active');
+    if (resultsSection) resultsSection.classList.remove('active');
+    if (quizSection) quizSection.classList.add('active');
+
+    // Afișăm prima întrebare exact cum a fost salvată, cu interfață curată
+    displayQuestion(0);
+    
+    console.log(`Quiz ${quizId} încărcat cu ${quizQuestions.length} întrebări pentru reluare.`);
+  } catch (e) {
+    alert('Eroare la încărcarea quiz-ului: ' + e.message);
+    console.error('Eroare la încărcarea quiz-ului salvat:', e);
+  }
+}
+
 // Initialize on load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
   init();
+}
+
+// Funcții pentru cronometru
+function startQuizTimer() {
+  quizStartTime = Date.now();
+  updateTimerDisplay();
+  
+  // Actualizează afișajul la fiecare secundă
+  quizTimerInterval = setInterval(() => {
+    timeSpentSeconds = Math.floor((Date.now() - quizStartTime) / 1000);
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function stopQuizTimer() {
+  if (quizTimerInterval) {
+    clearInterval(quizTimerInterval);
+    quizTimerInterval = null;
+  }
+  if (quizStartTime) {
+    timeSpentSeconds = Math.floor((Date.now() - quizStartTime) / 1000);
+  }
+}
+
+function updateTimerDisplay() {
+  const timerEl = document.getElementById('quizTimer');
+  if (!timerEl) return;
+  
+  const hours = Math.floor(timeSpentSeconds / 3600);
+  const minutes = Math.floor((timeSpentSeconds % 3600) / 60);
+  const seconds = timeSpentSeconds % 60;
+  
+  let timeStr = '';
+  if (hours > 0) {
+    timeStr = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  } else {
+    timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+  
+  timerEl.textContent = `⏱️ ${timeStr}`;
+}
+
+function formatTime(seconds) {
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (minutes < 60) {
+    return `${minutes}m ${secs}s`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours}h ${mins}m`;
 }

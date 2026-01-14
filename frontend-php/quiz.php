@@ -177,7 +177,10 @@ if (!isset($_SESSION['user_id'])) {
     <!-- Quiz Section -->
     <div id="quizSection" class="quiz-container">
       <div class="card">
-        <h3 id="quizProgress">Întrebarea 1 din 5</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 id="quizProgress">Întrebarea 1 din 5</h3>
+          <div id="quizTimer" style="font-size: 1.2rem; font-weight: 600; color: #667eea; padding: 8px 16px; background: #edf2ff; border-radius: 8px;">⏱️ 0:00</div>
+        </div>
         
         <div id="currentQuestion"></div>
         
@@ -248,6 +251,6 @@ if (!isset($_SESSION['user_id'])) {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <script src="js/quiz.js?v=3"></script>
+  <script src="js/quiz.js?v=6"></script>
 </body>
 </html>

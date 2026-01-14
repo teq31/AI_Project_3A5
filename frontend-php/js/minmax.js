@@ -3,6 +3,50 @@ const API = "http://127.0.0.1:8000";
 
 let currentPayload = null;
 
+async function loadReplayMinmax(testId) {
+  try {
+    const resp = await fetch(`api/get_test_payload.php?id=${encodeURIComponent(testId)}`);
+    if (!resp.ok) {
+      alert('Nu s-a putut încărca testul salvat.');
+      return;
+    }
+    const data = await resp.json();
+    if (!data.payload) {
+      alert('Acest test vechi nu are date complete și nu poate fi reluat.');
+      return;
+    }
+
+    currentPayload = data.payload;
+
+    const treeContainer = document.getElementById("treeVisualization");
+    const solutionEl = document.getElementById("solution");
+    const resultEl = document.getElementById("result");
+    const answerEl = document.getElementById("answer");
+
+    if (treeContainer && currentPayload.tree) {
+      drawTree(currentPayload.tree, currentPayload.solution?.visited_leaves || []);
+    }
+    if (solutionEl && currentPayload.solution) {
+      solutionEl.textContent = currentPayload.solution.explanation || "";
+    }
+    if (resultEl) resultEl.innerHTML = "";
+    if (answerEl) answerEl.value = "";
+
+    if (treeContainer) {
+      const info = document.createElement('div');
+      info.style.marginBottom = '8px';
+      info.style.fontSize = '0.9em';
+      info.style.opacity = '0.85';
+      info.style.color = '#74b9ff';
+      info.textContent = `Reiei testul dat pe ${new Date(data.created_at).toLocaleString()} (scor inițial: ${data.score}%)`;
+      treeContainer.parentNode.insertBefore(info, treeContainer);
+    }
+  } catch (err) {
+    console.error('Eroare la încărcarea testului salvat:', err);
+    alert('Eroare la încărcarea testului salvat: ' + (err.message || err));
+  }
+}
+
 async function callGenerate(depth, branching, valueMin, valueMax, seed) {
   if (USE_PROXY) {
     const url = `api/proxy_minmax_generate.php?depth=${depth}&branching=${branching}&valueMin=${valueMin}&valueMax=${valueMax}${seed!==''?`&seed=${seed}`:''}`;

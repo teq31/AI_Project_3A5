@@ -3,6 +3,48 @@ const API = "http://127.0.0.1:8000";
 
 let currentPayload = null;
 
+// În modul de reluare, setăm direct payload-ul salvat și încărcăm întrebarea
+async function loadReplayNash(testId) {
+  try {
+    const resp = await fetch(`api/get_test_payload.php?id=${encodeURIComponent(testId)}`);
+    if (!resp.ok) {
+      alert('Nu s-a putut încărca testul salvat.');
+      return;
+    }
+    const data = await resp.json();
+    if (!data.payload) {
+      // nu ar trebui sa ajungem aici, butonul de replay e ascuns pentru teste vechi
+      alert('Acest test vechi nu are date complete și nu poate fi reluat.');
+      return;
+    }
+
+    currentPayload = data.payload;
+
+    const questionEl = document.getElementById("question");
+    const solutionEl = document.getElementById("solution");
+    const resultEl = document.getElementById("result");
+    const answerEl = document.getElementById("answer");
+
+    if (questionEl) questionEl.textContent = currentPayload.question_text || "";
+    if (solutionEl && currentPayload.solution) solutionEl.textContent = currentPayload.solution.explanation || "";
+    if (resultEl) resultEl.innerHTML = "";
+    if (answerEl) answerEl.value = "";
+
+    if (questionEl) {
+      const info = document.createElement('div');
+      info.style.marginTop = '8px';
+      info.style.fontSize = '0.9em';
+      info.style.opacity = '0.85';
+      info.style.color = '#74b9ff';
+      info.textContent = `Reiei testul dat pe ${new Date(data.created_at).toLocaleString()} (scor inițial: ${data.score}%)`;
+      questionEl.parentNode.insertBefore(info, questionEl);
+    }
+  } catch (err) {
+    console.error('Eroare la încărcarea testului salvat:', err);
+    alert('Eroare la încărcarea testului salvat: ' + (err.message || err));
+  }
+}
+
 async function callGenerate(rows, cols, ensure, seed) {
   if (USE_PROXY) {
     const url = `api/proxy_nash_generate.php?rows=${rows}&cols=${cols}&ensure=${ensure}${seed!==''?`&seed=${seed}`:''}`;

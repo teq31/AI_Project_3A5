@@ -3,6 +3,52 @@ const API = "http://127.0.0.1:8000";
 
 let currentPayload = null;
 
+async function loadReplayCsp(testId) {
+  try {
+    const resp = await fetch(`api/get_test_payload.php?id=${encodeURIComponent(testId)}`);
+    if (!resp.ok) {
+      alert('Nu s-a putut încărca testul salvat.');
+      return;
+    }
+    const data = await resp.json();
+    if (!data.payload) {
+      alert('Acest test vechi nu are date complete și nu poate fi reluat.');
+      return;
+    }
+
+    currentPayload = data.payload;
+
+    const questionEl = document.getElementById("question");
+    const solutionEl = document.getElementById("solution");
+    const resultEl = document.getElementById("result");
+    const answerEl = document.getElementById("answer");
+
+    if (questionEl) {
+      questionEl.textContent = currentPayload.question_text || "";
+      questionEl.style.background = "#1a202c";
+      questionEl.style.color = "#e2e8f0";
+    }
+    if (solutionEl && currentPayload.solution) {
+      solutionEl.textContent = currentPayload.solution.explanation || "Soluția nu este disponibilă";
+    }
+    if (resultEl) resultEl.innerHTML = "";
+    if (answerEl) answerEl.value = "";
+
+    if (questionEl) {
+      const info = document.createElement('div');
+      info.style.marginTop = '8px';
+      info.style.fontSize = '0.9em';
+      info.style.opacity = '0.85';
+      info.style.color = '#74b9ff';
+      info.textContent = `Reiei testul dat pe ${new Date(data.created_at).toLocaleString()} (scor inițial: ${data.score}%)`;
+      questionEl.parentNode.insertBefore(info, questionEl);
+    }
+  } catch (err) {
+    console.error('Eroare la încărcarea testului salvat:', err);
+    alert('Eroare la încărcarea testului salvat: ' + (err.message || err));
+  }
+}
+
 async function callGenerate(problemType, optimization, seed) {
   if (USE_PROXY) {
     const url = `api/proxy_csp_generate.php?problem_type=${problemType}&optimization=${optimization}${seed!==''?`&seed=${seed}`:''}`;

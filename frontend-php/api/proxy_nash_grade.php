@@ -29,15 +29,23 @@ curl_close($ch);
 
 if ($httpCode === 200 && $response) {
     $result = json_decode($response, true);
+
+    // extragem payload-ul original al exercițiului din request-ul inițial
+    $original = json_decode($json_input, true);
+    $payloadJson = null;
+    if (is_array($original) && isset($original['payload'])) {
+        $payloadJson = json_encode($original['payload']);
+    }
     
     if (isset($result['score'])) {
         try {
-            $stmt = $pdo->prepare("INSERT INTO results (user_id, topic, score, feedback) VALUES (?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO results (user_id, topic, score, feedback, payload) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_SESSION['user_id'],
                 'Echilibru Nash',
                 $result['score'],
-                $result['feedback']
+                $result['feedback'],
+                $payloadJson
             ]);
         } catch (PDOException $e) {
         }

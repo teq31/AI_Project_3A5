@@ -145,5 +145,18 @@ if (!isset($_SESSION['user_id'])) {
   </div>
 
   <script src="js/smartest.js?v=2"></script>
+  <script>
+    // dacă venim din profil cu parametrul ?replay=ID, încărcăm direct testul salvat
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const replayId = params.get('replay');
+      if (replayId) {
+        // amânăm puțin pentru a fi sigur că DOM-ul este gata
+        window.addEventListener('load', function() {
+          loadReplayNash(replayId);
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
