@@ -88,6 +88,17 @@ py -m uvicorn app.main:app --reload --port 8000
 - Verifică că toate dependențele sunt instalate: `py -m pip list`
 - Verifică că portul 8000 nu este ocupat de alt proces
 
+### Probleme la NLP (Sentence Transformers):
+- Instalarea `sentence-transformers` poate eșua din cauza certificatelor SSL sau a unui CA bundle invalid.
+- Dacă apare eroare la instalare, încearcă:
+  ```powershell
+  $env:SSL_CERT_FILE = $null
+  $env:REQUESTS_CA_BUNDLE = $null
+  pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org sentence-transformers scikit-learn
+  ```
+- Modelul semantic se descarcă la prima utilizare și poate dura 1–2 minute.
+- După pornirea backend-ului, NLP-ul poate părea „inactiv” până se finalizează descărcarea/încărcarea modelului.
+
 ### Frontend nu se conectează la backend:
 - Verifică că backend-ul rulează pe `http://127.0.0.1:8000`
 - Verifică fișierul `frontend-php/js/smartest.js` - variabila `USE_PROXY` trebuie să fie `true` dacă folosești PHP proxy
