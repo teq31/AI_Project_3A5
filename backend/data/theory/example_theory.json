@@ -28,6 +28,21 @@
             "definition": "Strategii pure sunt deterministe (jucătorul alege o singură strategie), iar strategii mixte folosesc distribuții de probabilitate peste strategiile disponibile",
             "formula": "Strategie mixtă: σ_i = (p₁, p₂, ..., p_k) unde Σp_j = 1",
             "example": "În jocuri cu strategii mixte, jucătorul poate alege strategia 1 cu probabilitatea 0.6 și strategia 2 cu probabilitatea 0.4"
+          },
+          {
+            "concept": "Strategie Dominantă",
+            "definition": "O strategie este dominantă dacă oferă un rezultat cel puțin la fel de bun indiferent de strategia adversarului",
+            "example": "În dilema prizonierului, „Confesă” este dominantă pentru ambii jucători"
+          },
+          {
+            "concept": "Matrice de Payoff",
+            "definition": "Tabel care asociază fiecărei combinații de strategii un cuplu de câștiguri (J1, J2)",
+            "example": "În jocuri 2x2, fiecare celulă conține o pereche (u1,u2)"
+          },
+          {
+            "concept": "Optimum Pareto",
+            "definition": "O stare este Pareto-optimală dacă nu există o altă stare care să îmbunătățească utilitatea unui jucător fără a o înrăutăți pe a altuia",
+            "example": "În dilema prizonierului, (Nu confesa, Nu confesa) este Pareto-optimal"
           }
         ],
         "theorems": [
@@ -188,6 +203,26 @@
             "definition": "Eliminarea unei ramuri când se știe că nu poate îmbunătăți valoarea curentă",
             "condition": "Pruning se face când beta ≤ alpha",
             "reason": "Dacă beta ≤ alpha, jucătorul MIN știe că MAX nu va alege această ramură, deci nu mai este nevoie să exploreze restul"
+          },
+          {
+            "concept": "MinMax",
+            "definition": "Algoritm pentru jocuri cu doi jucători care maximizează câștigul jucătorului MAX și minimizează câștigul jucătorului MIN",
+            "example": "Valoarea rădăcinii se calculează alternând MAX/MIN până la frunze"
+          },
+          {
+            "concept": "Arbore de joc",
+            "definition": "Structură care reprezintă stările posibile ale jocului, cu noduri MAX/MIN și frunze evaluate",
+            "example": "Frunzele conțin scoruri, nodurile interne propagă valori prin MinMax"
+          },
+          {
+            "concept": "Funcție de evaluare",
+            "definition": "Funcție care estimează valoarea unei stări non‑terminală când căutarea este tăiată",
+            "example": "În șah, evaluarea poate include material, controlul centrului etc."
+          },
+          {
+            "concept": "Cutoff (tăiere la adâncime)",
+            "definition": "Oprirea căutării la o adâncime fixă și evaluarea stărilor cu o funcție euristică",
+            "example": "Depth=3: frunzele la nivelul 3 sunt evaluate euristic"
           }
         ],
         "algorithms": [
@@ -300,6 +335,16 @@
             "concept": "AI cu Memorie",
             "definition": "Poate stoca experiențe și le folosește pentru decizii viitoare",
             "examples": ["Sisteme de recomandare", "Agenti cu experiență"]
+          },
+          {
+            "concept": "AI îngustă (ANI)",
+            "definition": "Sisteme specializate pe o sarcină specifică, fără generalizare largă",
+            "examples": ["Sisteme de recomandare", "Recunoaștere imagini", "Asistenți vocali"]
+          },
+          {
+            "concept": "AI generală (AGI)",
+            "definition": "Inteligență capabilă să rezolve probleme diverse la nivel uman, în multiple domenii",
+            "examples": ["Concept teoretic, încă neimplementat complet"]
           }
         ],
         "examples": [
@@ -371,6 +416,26 @@
             "definition": "Strategie care permite mutări către stări mai slabe cu probabilitate descrescătoare",
             "use_cases": ["Optimizare globală", "Probleme complexe"],
             "characteristics": ["Evită minime locale", "Parametri sensibili", "Mai lentă decât Hillclimbing"]
+          },
+          {
+            "concept": "BFS (Breadth-First Search)",
+            "definition": "Strategie de căutare care explorează nivel cu nivel, garantând soluția cu cel mai mic număr de pași",
+            "characteristics": ["Completă", "Optimală pentru costuri uniforme", "Consum mare de memorie"]
+          },
+          {
+            "concept": "DFS (Depth-First Search)",
+            "definition": "Strategie care explorează cât mai adânc posibil înainte de a reveni",
+            "characteristics": ["Consum redus de memorie", "Nu este optimală", "Poate intra pe ramuri adânci"]
+          },
+          {
+            "concept": "A* Search",
+            "definition": "Căutare informată care folosește f(n)=g(n)+h(n) pentru a ghida explorarea",
+            "characteristics": ["Completă", "Optimală dacă h este admisibilă", "Depinde de euristică"]
+          },
+          {
+            "concept": "Uniform-Cost Search",
+            "definition": "Extinde mereu nodul cu costul total minim g(n)",
+            "characteristics": ["Completă", "Optimală", "Poate fi lentă pentru costuri mari"]
           }
         ]
       },
@@ -470,6 +535,31 @@
             "definition": "La atribuirea unei valori unei variabile, se verifică și se actualizează domeniile variabilelor neasignate conectate prin constrângeri",
             "advantage": "Detectează mai devreme inconsistențe",
             "use": "Optimizare pentru Backtracking"
+          },
+          {
+            "concept": "Variabilă (CSP)",
+            "definition": "Entitate care trebuie asignată unei valori dintr-un domeniu",
+            "example": "X, Y, Z în problema X≠Y"
+          },
+          {
+            "concept": "Domeniu",
+            "definition": "Mulțimea valorilor permise pentru o variabilă",
+            "example": "X ∈ {1,2,3}"
+          },
+          {
+            "concept": "Constrângere",
+            "definition": "Regulă care limitează combinațiile posibile de valori",
+            "example": "X > Y sau X + Z = 10"
+          },
+          {
+            "concept": "MRV (Minimum Remaining Values)",
+            "definition": "Heuristică ce alege variabila cu cele mai puține valori rămase",
+            "benefit": "Reduce rapid spațiul de căutare"
+          },
+          {
+            "concept": "Degree Heuristic",
+            "definition": "Alege variabila care are cele mai multe constrângeri cu variabilele neasignate",
+            "benefit": "Priorizare a variabilelor care restricționează cel mai mult"
           }
         ]
       },
@@ -506,6 +596,26 @@
             "concept": "Limitări",
             "definition": "Există cunoștințe care nu pot fi reprezentate complet în ontologii formale",
             "examples": ["Cunoștințe tacite", "Context dependent", "Cunoștințe incomplete", "Experiență personală"]
+          },
+          {
+            "concept": "Clase",
+            "definition": "Categorii generale de obiecte sau concepte într-o ontologie",
+            "example": "Clasa 'Câine' într-o ontologie a animalelor"
+          },
+          {
+            "concept": "Proprietăți",
+            "definition": "Atribute ale claselor sau instanțelor",
+            "example": "AreCuloare, AreVârstă"
+          },
+          {
+            "concept": "Relații",
+            "definition": "Legături între clase sau instanțe",
+            "example": "mănâncă(Animal, Hrană)"
+          },
+          {
+            "concept": "Taxonomie",
+            "definition": "Ierarhie de clase (is-a) într-o ontologie",
+            "example": "Câine este o subclasă a Animal"
           }
         ]
       },
